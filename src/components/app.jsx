@@ -1,13 +1,14 @@
-import React from "react";
+import "react";
+import { ipcRenderer } from "electron";
 import "../../css/app.css";
+import { Fragment } from "react";
 
 function App() {
     return (
-        <div>
-            <h1>Hello, Electron!</h1>
-
-            <p>L2 property editor will go here</p>
-        </div>
+        <Fragment>
+            {/* <input type="button" value="Open File" onClick={() => ipcRenderer.send("user-interaction", { type: "open-file" })}></input> */}
+            {/* <input type="button" value="Open File" onClick={() => window.electron.doThing()}></input> */}
+        </Fragment>
     );
 }
 
