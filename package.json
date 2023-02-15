@@ -1,0 +1,44 @@
+{
+  "name": "l2js-pe",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "webpack serve --hot --host 0.0.0.0 --config=./configs/development.config.js",
+    "build-dev": "webpack build --config=./configs/development.config.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@l2js/core": "https://github.com/realratchet/l2js-core.git",
+    "postcss": "^8.4.21",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.12",
+    "@babel/plugin-transform-runtime": "^7.19.6",
+    "@babel/plugin-transform-typescript": "^7.20.13",
+    "@babel/preset-env": "^7.20.2",
+    "@babel/preset-react": "^7.18.6",
+    "@babel/preset-typescript": "^7.18.6",
+    "babel-loader": "^9.1.2",
+    "css-loader": "^6.7.3",
+    "electron": "^23.0.0",
+    "electron-devtools-installer": "^3.2.0",
+    "file-loader": "^6.2.0",
+    "html-webpack-plugin": "^5.5.0",
+    "mini-css-extract-plugin": "^2.7.2",
+    "postcss-import": "^15.1.0",
+    "postcss-loader": "^7.0.2",
+    "postcss-nested": "^6.0.0",
+    "postcss-preset-env": "^8.0.1",
+    "postcss-pxtorem": "^6.0.0",
+    "style-loader": "^3.3.1",
+    "webpack": "^5.75.0",
+    "webpack-bundle-analyzer": "^4.8.0",
+    "webpack-cli": "^5.0.1",
+    "webpack-dev-server": "^4.11.1"
+  }
+}
