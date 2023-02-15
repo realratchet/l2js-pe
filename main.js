@@ -4,7 +4,6 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 const url = require("url");
-const registerHandlers = require("./electron-app/handlers");
 
 // Keep a global reference of the window object, if you don"t, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -67,8 +66,6 @@ function createWindow() {
                 .catch(err => console.log("Error loading React DevTools: ", err));
             mainWindow.webContents.openDevTools();
         }
-
-        registerHandlers();
     });
 
     // Emitted when the window is closed.
