@@ -18,8 +18,10 @@ createRoot(root).render(
 
 
 window.addEventListener("DOMContentLoaded", async function () {
-    ipcRenderer.send("user-interaction", {
-        type: "read-package",
-        payload: "maps/17_25.unr"
-    });
+    setTimeout(function () {
+        ipcRenderer.send("user-interaction", {
+            type: "read-package",
+            payload: "maps/17_25.unr"
+        });
+    }, 500); // small delay because the debugger within electron takes some time to attach
 });

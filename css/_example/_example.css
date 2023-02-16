@@ -1,5 +1,5 @@
 /* Example stylesheet */
-@media screen and (prefers-color-scheme: light),
+@media screen and (prefers-color-scheme: dark),
 screen and (prefers-color-scheme: no-preference) {
 
     /* Light theme */

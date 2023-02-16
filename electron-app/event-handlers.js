@@ -1,13 +1,31 @@
 const path = require("path");
 const { ipcMain } = require("electron");
-const readPackage = require("./unreal/un-package");
+const UPackage = require("./unreal/un-package");
 
 const PATH_LINEAGE2 = process.env.PATH_LINEAGE2;
 
+/**
+ * @type {UPackage}
+ */
+let activePackage = null;
 
-async function onUserInteraction(_, { type, payload } = {}) {
+/**
+ * 
+ * @param {import("electron").IpcMainEvent} sender 
+ * @param {*} param1 
+ */
+async function onUserInteraction(sender, { type, payload } = {}) {
     switch (type) {
-        case "read-package": readPackage(path.resolve(PATH_LINEAGE2, payload)); break;
+        case "read-package":
+            activePackage = await UPackage.loadPackage(path.resolve(PATH_LINEAGE2, payload));
+            sender.reply("user-interaction-reply", {
+                type,
+                payload: activePackage.toJSON()
+            });
+            break;
+        case "load-export":
+            activePackage.fetchExport(payload);
+            break;
         default: throw new Error(`Unsupported event type: ${type}`);
     }
 }
