@@ -1,3 +1,4 @@
+import { ipcRenderer } from "electron";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./components/app.jsx";
@@ -14,3 +15,11 @@ createRoot(root).render(
         <App />
     </StrictMode>
 );
+
+
+window.addEventListener("DOMContentLoaded", async function () {
+    ipcRenderer.send("user-interaction", {
+        type: "read-package",
+        payload: "maps/17_25.unr"
+    });
+});

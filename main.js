@@ -9,6 +9,8 @@
     const url = require("url");
     const addEventHandlers = require("./electron-app/event-handlers");
 
+    addEventHandlers();
+
     // Keep a global reference of the window object, if you don"t, the window will
     // be closed automatically when the JavaScript object is garbage collected.
     let mainWindow;
@@ -70,6 +72,7 @@
 
         // Don"t show until we are ready and loaded
         mainWindow.once("ready-to-show", () => {
+            
             mainWindow.show();
 
             // Open the DevTools automatically if developing
@@ -80,8 +83,6 @@
                     .catch(err => console.log("Error loading React DevTools: ", err));
                 mainWindow.webContents.openDevTools();
             }
-
-            addEventHandlers();
         });
 
         // Emitted when the window is closed.
