@@ -1,6 +1,7 @@
 "use strict";
 
 (async function () {
+    require("dotenv").config();
 
     // Import parts of electron to use
     const { app, BrowserWindow } = require("electron");
@@ -27,7 +28,6 @@
     if (process.env.START_WEBPACK !== undefined && process.env.START_WEBPACK === "true") {
         const webpack = require("webpack");
         const WebpackDevServer = require("webpack-dev-server");
-        const { readFileSync } = require("fs");
         const config = require("./configs/development.config");
         const wp = webpack(config);
         const server = new WebpackDevServer(config.devServer, wp);

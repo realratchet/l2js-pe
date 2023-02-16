@@ -7,7 +7,7 @@ const root = document.createElement("div");
 root.id = "root";
 
 document.body.appendChild(root);
-document.title = "Lineage2JS Property Editor"
+document.title = "Lineage2JS - Property Editor";
 
 createRoot(root).render(
     <StrictMode>
