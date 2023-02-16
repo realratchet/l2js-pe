@@ -1,11 +1,10 @@
 const webpack = require("webpack");
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const { spawn } = require("child_process");
 
 module.exports = {
     mode: "development",
-    entry: "./src/index.jsx",
+    entry: path.resolve(__dirname, "../src/index.jsx"),
     module: {
         rules: [
             {
@@ -48,7 +47,10 @@ module.exports = {
     },
     target: "electron-renderer",
     plugins: [
-        new HtmlWebpackPlugin(),
+        new HtmlWebpackPlugin({
+            filename: "index.html",
+            template: path.resolve(__dirname, "../html/index.html")
+        }),
         new webpack.DefinePlugin({
             "process.env.NODE_ENV": JSON.stringify("development")
         })
@@ -64,19 +66,6 @@ module.exports = {
                 chunks: false,
                 children: false
             }
-        },
-        onBeforeSetupMiddleware() {
-            spawn(
-                "electron",
-                ["."],
-                {
-                    shell: true,
-                    env: Object.assign({}, process.env, { NODE_ENV: "development" }),
-                    stdio: "inherit"
-                }
-            )
-                .on("close", code => process.exit(0))
-                .on("error", spawnError => console.error(spawnError))
         }
     }
 };
