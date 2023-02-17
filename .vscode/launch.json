@@ -15,6 +15,7 @@
             "runtimeArgs": [
                 ".",
                 "--trace-warnings",
+                "--enable-source-maps",
                 // this args for attaching render process
                 "--remote-debugging-port=9222",
                 // "--devtools=1",
@@ -23,7 +24,8 @@
             ],
             "env": {
                 "NODE_ENV": "development",
-                "START_WEBPACK": "true"
+                "START_WEBPACK": "true",
+                "NODE_OPTIONS": "--enable-source-maps --trace-warnings" // source maps don't work :(
             }
         },
     ]

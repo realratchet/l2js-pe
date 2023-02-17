@@ -21,7 +21,7 @@ window.addEventListener("DOMContentLoaded", async function () {
     setTimeout(function () {
         ipcRenderer.send("user-interaction", {
             type: "read-package",
-            payload: "maps/17_25.unr"
+            payload: { package: "17_25", type: "Level" }
         });
     }, 500); // small delay because the debugger within electron takes some time to attach
 });

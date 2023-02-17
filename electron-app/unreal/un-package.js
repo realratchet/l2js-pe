@@ -1,14 +1,8 @@
 const { promises: { readFile } } = require("fs");
-const { UPackage: _UPackage, UExport, UObject } = require("@l2js/core");
+const { UPackage: _UPackage, UNativePackage: _UNativePackage, UExport, UObject } = require("@l2js/core");
 const path = require("path");
 
-module.exports = class UPackage extends _UPackage {
-    constructor(path) {
-        super(path);
-
-        this.loaded = new Map();
-    }
-
+class UPackage extends _UPackage {
     async readArrayBuffer() { return (await readFile(this.path)).buffer; }
 
     toJSON() {
@@ -23,27 +17,12 @@ module.exports = class UPackage extends _UPackage {
             })
         };
     }
-
-    static async loadPackage(path) { return await (new UPackage(path)).decode(); }
-
-    /**
-     * 
-     * @param {UExport} */
-    loadExport(exp) {
-        const obj = new UObject();
-
-        obj.load(this.asReadable(), exp);
-
-        debugger;
-    }
-
-    fetchExport(index) {
-        const exp = this.exports[index];
-
-        if (!this.loaded.has(exp))
-            this.loaded.set(exp, this.loadExport(exp));
-
-        return this.loaded.get(exp).toJSON();
-    }
 }
 
+class UNativePackage extends _UNativePackage {
+    isCore = false;
+    isEngine = false;
+    isNative = true;
+}
+
+module.exports = { default: UPackage, UPackage, UNativePackage };
