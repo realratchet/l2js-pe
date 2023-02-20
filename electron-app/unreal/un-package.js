@@ -1,5 +1,5 @@
 const { promises: { readFile } } = require("fs");
-const { UPackage: _UPackage, UNativePackage: _UNativePackage, UExport, UObject } = require("@l2js/core");
+const { UPackage: _UPackage, UNativePackage: _UNativePackage, UExport, UObject } = require("../import-core")();
 const path = require("path");
 
 class UPackage extends _UPackage {

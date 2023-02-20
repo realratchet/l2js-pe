@@ -9,23 +9,21 @@
             "request": "launch",
             "name": "Electron: Launch",
             "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron",
-            "program": "${workspaceRoot}/main.js",
             "args": [
             ],
             "runtimeArgs": [
                 ".",
                 "--trace-warnings",
                 "--enable-source-maps",
+                "--preserve-symlinks",
                 // this args for attaching render process
                 "--remote-debugging-port=9222",
-                // "--devtools=1",
-                // "--width=720"
                 "--",
             ],
             "env": {
                 "NODE_ENV": "development",
                 "START_WEBPACK": "true",
-                "NODE_OPTIONS": "--enable-source-maps --trace-warnings" // source maps don't work :(
+                "NODE_OPTIONS": "--enable-source-maps --trace-warnings --preserve-symlinks"
             }
         },
     ]

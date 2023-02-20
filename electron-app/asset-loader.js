@@ -2,7 +2,7 @@ const path = require("path");
 const { promises: { readdir } } = require("fs");
 const { SUPPORTED_EXTENSIONS } = require("@l2js/core/src/supported-extensions");
 
-module.exports = class AssetLoader extends require("@l2js/core").AssetLoader {
+module.exports = class AssetLoader extends require("./import-core")().AssetLoader {
     /**
      * 
      * @param {string} dirClient

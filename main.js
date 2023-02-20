@@ -1,15 +1,17 @@
 "use strict";
 
+const { realpathSync } = require("fs");
+
+
 (async function () {
     require("dotenv").config();
+    // require("source-map-support").install();
 
     // Import parts of electron to use
-    const { app, BrowserWindow } = require("electron");
-    const path = require("path");
     const url = require("url");
-    const addEventHandlers = require("./electron-app/event-handlers");
+    const path = require("path");
+    const { spawn, fork, spawnSync } = require("child_process");
 
-    addEventHandlers();
 
     // Keep a global reference of the window object, if you don"t, the window will
     // be closed automatically when the JavaScript object is garbage collected.
@@ -30,12 +32,36 @@
     if (process.env.START_WEBPACK !== undefined && process.env.START_WEBPACK === "true") {
         const webpack = require("webpack");
         const WebpackDevServer = require("webpack-dev-server");
-        const config = require("./configs/development.config");
-        const wp = webpack(config);
-        const server = new WebpackDevServer(config.devServer, wp);
 
-        await server.start();
+        async function startRendererWp() {
+            const config = require("./configs/development.config");
+            const wp = webpack(config);
+            const server = new WebpackDevServer(config.devServer, wp);
+
+            await server.start();
+        }
+
+        function startCoreWp() {
+            const pathCompile = path.resolve(__dirname, "./compile-core.js");
+            console.log("cwd: ", realpathSync(path.resolve("node_modules/@l2js/core")));
+            const result = spawnSync(process.env.NODE_EXEC_PATH || "node", [`${pathCompile}`], {
+                cwd: realpathSync(path.resolve("node_modules/@l2js/core"))
+            });
+
+            if (result.status !== 0)
+                throw new Error(`'@l2js/core' compilation error.`);
+
+            console.log("'@l2js/core' compilation successfull.");
+        }
+
+        startCoreWp();
+        await startRendererWp();
     }
+
+    const { app, BrowserWindow } = require("electron");
+    const addEventHandlers = require("./electron-app/event-handlers");
+
+    addEventHandlers();
 
     function createWindow() {
         // Create the browser window.
@@ -72,7 +98,7 @@
 
         // Don"t show until we are ready and loaded
         mainWindow.once("ready-to-show", () => {
-            
+
             mainWindow.show();
 
             // Open the DevTools automatically if developing
