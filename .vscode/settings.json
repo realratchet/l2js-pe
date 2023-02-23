@@ -5,6 +5,8 @@
         "**/.hg": true,
         "**/CVS": true,
         "**/.DS_Store": true,
-        "**/Thumbs.db": true
+        "**/Thumbs.db": true,
+        "l2js-core/index.js": true,
+        "l2js-core/index.js.map": true,
     },
 }

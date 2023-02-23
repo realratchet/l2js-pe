@@ -14,9 +14,6 @@ const config = createConfigBundle({
     library: true
 });
 
-console.log(process.cwd());
-console.log(realpathSync(path.resolve(__dirname, "./l2js-core/src")));
-
 config.plugins.unshift(new SourceMapDevToolPlugin({
     filename: "[name].js.map[query]",
     sourceRoot: path.resolve(__dirname, "./l2js-core/") // yarn link will create a symbolic link

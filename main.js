@@ -43,7 +43,6 @@ const { realpathSync } = require("fs");
 
         function startCoreWp() {
             const pathCompile = path.resolve(__dirname, "./compile-core.js");
-            console.log("cwd: ", realpathSync(path.resolve("node_modules/@l2js/core")));
             const result = spawnSync(process.env.NODE_EXEC_PATH || "node", [`${pathCompile}`], {
                 cwd: realpathSync(path.resolve("node_modules/@l2js/core"))
             });
