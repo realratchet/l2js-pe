@@ -53,7 +53,7 @@ const { realpathSync } = require("fs");
             console.log("'@l2js/core' compilation successfull.");
         }
 
-        startCoreWp();
+        startCoreWp(); // NOTE: for whatever reason electron is bitchy when there's a long running forked process, so must be done synchronously, honestly, doesn't matter either way, just triggers my OCD
         await startRendererWp();
     }
 
@@ -81,7 +81,7 @@ const { realpathSync } = require("fs");
         if (dev && process.argv.indexOf("--noDevServer") === -1) {
             indexPath = url.format({
                 protocol: "http:",
-                host: "localhost:8080",
+                host: "localhost:5000",
                 pathname: "index.html",
                 slashes: true
             });
