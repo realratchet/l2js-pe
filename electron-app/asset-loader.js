@@ -6,7 +6,7 @@ module.exports = class AssetLoader extends require("./import-core")().AssetLoade
     /**
      * 
      * @param {string} dirClient
-     * @returns {AssetLoader}
+     * @returns {Promise<AssetLoader>}
      */
     static async Instantiate(dirClient) {
         const assetList = await collectAssets(dirClient);
@@ -37,7 +37,7 @@ async function* walkSync(dir) {
 
 /**
  * @param {string} dirClient
- * @returns {import("@l2js/core").IAssetListInfo}
+ * @returns {Promise<import("@l2js/core").IAssetListInfo>}
  */
 async function collectAssets(dirClient) {
     const assets = {};

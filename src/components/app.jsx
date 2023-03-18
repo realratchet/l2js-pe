@@ -12,7 +12,8 @@ async function onUserInteractionReply(_, { type, payload } = {}) {
 }
 
 function App() {
-    const [pkgExps, setPkgExps] = useState([]);
+    const [activeExpGroup, setExpGroup] = useState("");
+    const [activeExp, setExp] = useState("");
 
     [pkg, setPkg] = useState();
 
@@ -25,21 +26,20 @@ function App() {
     }, {});
 
     const groupKeys = Object.keys(groups), groupCount = groupKeys.length;
-    const expCount = pkgExps.length;
+    const expCount = activeExpGroup !== "" ? groups[activeExpGroup].length : 0;
 
-    function onGroupChanged({ target: { value } }) { setPkgExps(groups[value]); }
+    function onGroupChanged({ target: { value } }) {
+        setExpGroup(value);
+        setExp("");
+    }
+
     function onExportChanged({ target: { value } }) {
         ipcRenderer.send("user-interaction", {
             type: "load-export",
             payload: parseInt(value)
         });
-    }
 
-    if (pkg) {
-        ipcRenderer.send("user-interaction", {
-            type: "load-export",
-            payload: 0
-        });
+        setExp(value);
     }
 
     return (
@@ -47,18 +47,26 @@ function App() {
             <div className="app">
                 <div>{pkg?.filename || "No file"}</div>
                 <div className="dropdown-container">
-                    <select disabled={groupCount === 0} onChange={onGroupChanged}>
-                        <option disabled={true} defaultValue>-Nothing selected-</option>
+                    <select value={activeExpGroup} disabled={groupCount === 0} onChange={onGroupChanged}>
+                        <option disabled={true} value="">-Nothing selected-</option>
                         {
                             groupKeys.map((gr, i) => (<option key={`group-dd-${i}`} value={gr}>{gr}</option>))
                         }
                     </select>
                 </div>
                 <div className="dropdown-container">
-                    <select disabled={expCount === 0} onChange={onExportChanged}>
-                        <option disabled={true} defaultValue>-Nothing selected-</option>
+                    <select value={activeExp} disabled={expCount === 0} onChange={onExportChanged} /*onClick={onExportChanged}*/>
+                        <option disabled={true} value="">-Nothing selected-</option>
                         {
-                            pkgExps.map((exp, i) => (<option key={`exp-dd-${i}`} value={exp.index}>{exp.name}</option>))
+                            activeExpGroup === ""
+                                ? null
+                                : groups[activeExpGroup]
+                                    .map((exp, i) => (
+                                        <option
+                                            key={`exp-dd-${i}`}
+                                            value={exp.index}
+                                        >{exp.name}</option>)
+                                    )
                         }
                     </select>
                 </div>

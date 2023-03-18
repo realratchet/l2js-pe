@@ -21,7 +21,7 @@ let assetLoader;
  * @param {*} param1 
  */
 async function onUserInteraction(sender, { type, payload } = {}) {
-    assetLoader = await AssetLoader.Instantiate(PATH_LINEAGE2);
+    assetLoader = assetLoader || await AssetLoader.Instantiate(PATH_LINEAGE2);
 
     switch (type) {
         case "read-package":
@@ -32,7 +32,9 @@ async function onUserInteraction(sender, { type, payload } = {}) {
             });
             break;
         case "load-export":
+            // debugger;
             console.log(activePackage.fetchObject(payload + 1).loadSelf());
+            // debugger;
             break;
         default: throw new Error(`Unsupported event type: ${type}`);
     }
