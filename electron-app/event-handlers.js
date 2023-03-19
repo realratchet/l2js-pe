@@ -32,9 +32,10 @@ async function onUserInteraction(sender, { type, payload } = {}) {
             });
             break;
         case "load-export":
-            // debugger;
-            console.log(activePackage.fetchObject(payload + 1).loadSelf());
-            // debugger;
+            sender.reply("user-interaction-reply", {
+                type,
+                payload: activePackage.fetchObject(payload + 1).loadSelf().toJSON()
+            });
             break;
         default: throw new Error(`Unsupported event type: ${type}`);
     }

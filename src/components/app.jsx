@@ -2,6 +2,7 @@ import "../../css/app.css";
 import { Header } from "./header.jsx";
 import { ipcRenderer } from "electron";
 import { Fragment, useState } from "react";
+import ObjectInfo from "./object-info.jsx";
 
 /**
  * @type {[string, React.Dispatch<React.SetStateAction<string>>]}
@@ -26,6 +27,7 @@ function App() {
     return (
         <div className="app">
             <Header pkg={statePkg} expGroup={stateExpGroup} exp={stateExp}></Header>
+            <ObjectInfo activeExp={stateExp[0]}></ObjectInfo>
         </div>
     );
 }
