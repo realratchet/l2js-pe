@@ -9,6 +9,7 @@ module.exports = function importCore() {
 
         return _export;
     } catch (e) {
+        console.log(e);
         return require("@l2js/core");
     }
 }

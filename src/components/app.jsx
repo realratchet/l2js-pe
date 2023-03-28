@@ -14,6 +14,7 @@ async function onUserInteractionReply(_, { type, payload } = {}) {
 
     switch (type) {
         case "read-package": setPkg(payload); break;
+        case "load-export": break;
         default: throw new Error(`Unsupported event type: ${type}`);
     }
 }

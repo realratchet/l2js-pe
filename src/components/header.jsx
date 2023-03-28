@@ -62,6 +62,9 @@ function Header({
                 type: "read-package",
                 payload: { package: "17_25", type: "Level" }
             })}></input>
+            <input type="button" value="Save File" onClick={() => ipcRenderer.send("user-interaction", {
+                type: "export-package"
+            })}></input>
         </div>
     );
 }

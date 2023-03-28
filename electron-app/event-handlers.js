@@ -37,6 +37,9 @@ async function onUserInteraction(sender, { type, payload } = {}) {
                 payload: activePackage.fetchObject(payload + 1).loadSelf().toJSON()
             });
             break;
+        case "export-package":
+            activePackage.toBuffer();
+            break;
         default: throw new Error(`Unsupported event type: ${type}`);
     }
 }
