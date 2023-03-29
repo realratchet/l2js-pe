@@ -2,14 +2,9 @@ const { promises: { readFile, stat }, createReadStream, createWriteStream, write
 const { BufferValue, UPackage: _UPackage, UNativePackage: _UNativePackage, UExport, UObject } = require("../import-core")();
 const path = require("path");
 const { createHash } = require("crypto");
+const { Writable } = require("stream");
 
 const chunks = [];
-
-const stream = new WritableStream({
-    write(chunk) {
-        console.log(chunk);
-    },
-});
 
 async function hashFile(path, algo = "md5") {
     const hashFunc = createHash(algo);   // you can also sha256, sha512 etc
@@ -158,41 +153,15 @@ class UPackage extends _UPackage {
 
         console.log(newPath);
 
-        const writeStream = createWriteStream(newPath, { flags: "w" });
+        
+
+        const writeStream = new BufferStream();
 
         try {
             const writer = new ByteWriter(writeStream);
 
             // await writer.writeBytes(new ArrayBuffer(28));   // fake the signature for the moment
             await this.dumpHeader(writer);
-
-            /*
-            ---------------------------------------------------------------
-            -------------------------- Dumping lines ----------------------
-            ---------------------------------------------------------------
-            (0x00) C183 2A9E 7B00 1900 0100 0000 D913 0000 Á.*.{.......Ù...
-            (0x01) 4000 0000 6210 0000 F7C9 5500 2B02 0000 @...b...÷ÉU.+...
-            (0x02) 13B5 5500 B161 FBD8 3175 E24D BC48 CF2F .µU.±aûØ1uâM¼HÏ/
-            (0x03) 0171 8839 0100 0000 6210 0000 D913 0000 .q.9....b...Ù...
-            (0x04) 054E 6F6E 6500 1004 0704 0756 6563 746F .None......Vecto
-            (0x05) 7200 1004 0704 0669 4C65 6166 0010 0007 r......iLeaf....
-            (0x06) 000B 5A6F 6E65 4E75 6D62 6572 0010 0007 ..ZoneNumber....
-            (0x07) 0005 5A6F 6E65 0010 0007 000C 506F 696E ..Zone......Poin
-            (0x08) 7452 6567 696F 6E00 1000 0700 0752 6567 tRegion......Reg
-            (0x09) 696F 6E00 1000 0700 094C 6F63 6174 696F ion......Locatio
-            (0x0A) 6E00 1000 0700 0643 6F6C 6F72 0010 0407 n......Color....
-            (0x0B) 0406 4772 6F75 7000 1000 0700 0852 6F74 ..Group......Rot
-            (0x0C) 6174 6F72 0010 0407 040F 6248 6964 6465 ator......bHidde
-            (0x0D) 6E45 6447 726F 7570 0010 0007 000C 536F nEdGroup......So
-            (0x0E) 756E 6456 6F6C 756D 6500 1000 0700 0C53 undVolume......S
-            (0x0F) 6F75 6E64 5261 6469 7573 0010 0007 000D oundRadius......
-            (0x10) 416D 6269 656E 7453 6F75 6E64 0010 0007 AmbientSound....
-            (0x11) 000E 416D 6269 656E 7452 616E 646F 6D00 ..AmbientRandom.
-            (0x12) 1000 0700 1641 6D62 6965 6E74 536F 756E .....AmbientSoun
-            (0x13) 6453 7461 7274 5469 6D65 0010 0007 000E dStartTime......
-            ---------------------------------------------------------------
-            */
-
             await this.dumpNameTable(writer);
             await this.dumpExports(writer);
             await this.dumpImportTable(writer);
@@ -200,6 +169,8 @@ class UPackage extends _UPackage {
         } finally {
             writeStream.close();
         }
+
+        debugger;
 
         const newHash = await hashFile(newPath);
 
@@ -223,6 +194,32 @@ class UNativePackage extends _UNativePackage {
 }
 
 module.exports = { default: UPackage, UPackage, UNativePackage };
+
+class BufferStream extends Writable {
+    constructor() {
+        super(...arguments);
+
+        /**
+         * @type {Buffer[]}
+         */
+        this.chunks = [];
+
+        /**
+         * @type {Buffer}
+         */
+        this.buffer = null;
+    }
+
+    write(chunk, callback) {
+        this.chunks.push(chunk);
+
+        callback();
+    }
+
+    close() {
+        this.buffer = Buffer.concat(this.chunks);
+    }
+}
 
 class ByteWriter {
     /**
@@ -309,7 +306,11 @@ class ByteWriter {
     }
 
     /**
-     * 
+     * class BufferStream extends Writable {
+            write(chunk) {
+                debugger;
+            }
+        }
      * @param {number} value 
      */
     async writeUint8(value) {
