@@ -1,4 +1,5 @@
 {
+    "editor.selectionClipboard": false,
     "files.exclude": {
         "**/.git": true,
         "**/.svn": true,

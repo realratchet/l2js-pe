@@ -1,10 +1,11 @@
-const { promises: { readFile, stat }, createReadStream, createWriteStream, write } = require("fs");
-const { BufferValue, UPackage: _UPackage, UNativePackage: _UNativePackage, UExport, UObject } = require("../import-core")();
+const { promises: { readFile, stat, writeFile }, createReadStream, createWriteStream, write } = require("fs");
+const { BufferValue, UPackage: _UPackage, UNativePackage: _UNativePackage, UExport, UObject, crypto } = require("../import-core")();
 const path = require("path");
 const { createHash } = require("crypto");
 const { Writable } = require("stream");
 
 const chunks = [];
+
 
 async function hashFile(path, algo = "md5") {
     const hashFunc = createHash(algo);   // you can also sha256, sha512 etc
@@ -41,6 +42,8 @@ class UPackage extends _UPackage {
      */
     async dumpHeader(writer) {
         const header = this.header;
+
+        // 193, 131, 42, 158, 123, 0, 25, 0, 1, 0, 0, 0, 217, 19, 0, 0, 64, 0, 0, 0, 98, 16, 0, 0, 247, 201, 85, 0, 43, 2, 0, 0, 19, 181, 85, 0, 177, 97, 251, 216, 49, 117, 226, 77, 188, 72, 207, 47, 1, 113, 136, 57, 1, 0, 0, 0, 98, 16, 0, 0, 217, 19, 0, 0, 5, 78, 111, 110, 101, 0, 16, 4, 7, 4, 7, 86, 101, 99, 116, 111, 114, 0, 16, 4, 7, 4, 6, 105, 76, 101, 97, 102, 0, 16, 0, 7, 0, 11, 90, 111
 
         if (this.version.startsWith("1")) await writer.writeUint32(this.signature);
         else {
@@ -90,7 +93,6 @@ class UPackage extends _UPackage {
      */
     async dumpExportTable(writer) {
         for (const exp of this.exports) {
-            5616915
             if (exp.isFake) continue;
 
             await writer.writeCompat32(exp.idClass);
@@ -126,24 +128,120 @@ class UPackage extends _UPackage {
      * @param {ByteWriter} writer 
      */
     async dumpExports(writer) {
+        writer.flush();
+
         const readable = this.asReadable();
+
+        this.fetchObject(1).loadSelf();
 
         for (const exp of this.exports) {
             if (exp.isFake) continue;
+
+            if (exp.object) {
+                debugger;
+            }
 
             readable.seek(exp.offset, "set");
 
             const bytes = readable.read(BufferValue.allocBytes(exp.size)).bytes;
 
-            if ((await stat(writer.stream.path)).size !== exp.offset) {
+            if (writer.size() !== exp.offset) {
                 debugger;
             }
 
             await writer.writeBytes(bytes.buffer);
 
-            if ((await stat(writer.stream.path)).size !== (exp.offset + exp.size)) {
+            if (writer.size() !== (exp.offset + exp.size)) {
                 debugger;
             }
+        }
+    }
+
+    /**
+     * 
+     * @param {ByteWriter} writer 
+     */
+    async encrypt(writer) {
+        // 5697301
+        debugger;
+
+        if (this.version.startsWith("1")) {
+            crypto.encoders.encryptModulo(writer.flush(), this.moduloCryptKey);
+            // writer.stream.buffer = Buffer.from(encrypted);
+
+
+            const header = stringToUtf16(`Lineage2Ver${this.version}`);
+
+            writer.stream.chunksStart.push(Buffer.from(header.buffer));
+            // writer.stream.chunksStart.push(Buffer.alloc(28));
+
+            const buffer = writer.flush();
+
+            let offset = 0;
+            let lineCount = 10;
+            let constructedString = "";
+            let divisor = 0XF, lineCountHex = 1;
+
+            function read(byteCount) {
+                const bytes = buffer.subarray(offset, offset + byteCount);
+
+                offset = offset + byteCount;
+
+                const b = BufferValue.allocBytes(0);
+                b.bytes = new DataView(new Uint8Array(bytes).buffer);
+
+                return b;
+            }
+
+            const offsetHeader = new Array(5 + lineCountHex).fill("-").join("");
+
+            console.log(`${offsetHeader}--------------------------------------------------------`);
+            console.log(`${offsetHeader}------------------- Dumping lines ----------------------`);
+            console.log(`${offsetHeader}--------------------------------------------------------`);
+
+            for (let i = 0; i < lineCount; i++) {
+                const bytes = Math.min(buffer.byteLength - offset, 8);
+
+
+                const groups = new Array(bytes).fill('.').map(() => read(2));
+
+                const string1 = groups.map(g => g.hex.slice(2)).join(" ");
+                const string2 = groups.map(g => g.string).join("");
+
+                // constructedString += string2;
+                // constructedString = constructedString.slice(-100);
+
+                const extraArgs = [];
+
+                let finalString = string1;
+
+                const bits = i.toString(16).toUpperCase();
+                const head = new Array(lineCountHex - bits.length).fill("0").join("");
+
+                console.log(
+                    [
+                        `(0x${head}${bits})`,
+                        finalString,
+                        string2,
+                    ].join(" "),
+                    ...extraArgs
+                );
+
+            }
+
+            console.log(`${offsetHeader}--------------------------------------------------------`);
+
+            /*
+                00000000: 4C00 6900 6E00 6500 6100 6700 6500 3200  L.i.n.e.a.g.e.2.
+                00000010: 5600 6500 7200 3100 3100 3100 6D2F 8632  V.e.r.1.1.1.m/.2
+                00000020: D7AC B5AC ADAC ACAC 75BF ACAC ECAC ACAC  ........u.......
+                00000030: CEBC ACAC 5B65 F9AC 87AE ACAC BF19 F9AC  ....[e..........
+            */
+
+            debugger;
+        } else {
+            debugger;
+            throw new Error("Encrypting this version is not yet supported!");
         }
     }
 
@@ -153,8 +251,6 @@ class UPackage extends _UPackage {
 
         console.log(newPath);
 
-        
-
         const writeStream = new BufferStream();
 
         try {
@@ -162,10 +258,20 @@ class UPackage extends _UPackage {
 
             // await writer.writeBytes(new ArrayBuffer(28));   // fake the signature for the moment
             await this.dumpHeader(writer);
+            console.assert(this.header.nameOffset === writer.size());
             await this.dumpNameTable(writer);
             await this.dumpExports(writer);
+            console.assert(this.header.importOffset === writer.size());
             await this.dumpImportTable(writer);
+            console.assert(this.header.exportOffset === writer.size());
             await this.dumpExportTable(writer);
+
+            console.assert(5697273 === writer.size());
+
+            await this.encrypt(writer);
+
+            await writeFile(newPath, writeStream.flush())
+
         } finally {
             writeStream.close();
         }
@@ -200,14 +306,19 @@ class BufferStream extends Writable {
         super(...arguments);
 
         /**
+         * @type {Buffer}
+         */
+        this.buffer = Buffer.alloc(0);
+
+        /**
          * @type {Buffer[]}
          */
         this.chunks = [];
 
         /**
-         * @type {Buffer}
+         * @type {Buffer[]}
          */
-        this.buffer = null;
+        this.chunksStart = [];
     }
 
     write(chunk, callback) {
@@ -216,15 +327,37 @@ class BufferStream extends Writable {
         callback();
     }
 
-    close() {
+    flush() {
+        if (this.chunksStart.length === 0 && this.chunks.length === 0)
+            return this.buffer;
+
+        this.chunksStart.push(this.buffer);
+        this.buffer = Buffer.concat(this.chunksStart);
+        this.chunksStart.length = 0;
+
+        if (this.chunks.length === 0)
+            return this.buffer;
+
+        this.chunks.unshift(this.buffer);
         this.buffer = Buffer.concat(this.chunks);
+        this.chunks.length = 0;
+
+        return this.buffer;
+    }
+
+    close() { this.flush(); }
+    size() {
+        const lenStart = this.chunksStart.reduce((acc, v) => acc + v.length, 0);
+        const lenEnd = this.chunks.reduce((acc, v) => acc + v.length, 0);
+
+        return lenStart + this.buffer.length + lenEnd;
     }
 }
 
 class ByteWriter {
     /**
      * 
-     * @param {import("stream").Writable} stream 
+     * @param {BufferStream} stream 
      */
     constructor(stream) {
         this.stream = stream;
@@ -234,13 +367,16 @@ class ByteWriter {
         this.int8 = new DataView(new ArrayBuffer(1));
     }
 
+    size() { return this.stream.size(); }
+    flush() { return this.stream.flush(); }
+
     /**
      * 
      * @param {ArrayBuffer|string} value 
      */
     writeBytes(value) {
         return new Promise((resolve, reject) => {
-            this.stream.write(Buffer.from(value), error => {
+            this.stream.write(Buffer.from(value.slice()), error => {
                 if (error) {
                     reject(error);
                     return;
@@ -392,4 +528,15 @@ function sizeOfCompatInt(value) {
     }
 
     return 1;
+}
+
+function stringToUtf16(str) {
+    const buf = new ArrayBuffer(str.length * 2);
+    const bufView = new Uint16Array(buf);
+
+    for (let i = 0, len = str.length; i < len; i++)
+        bufView[i] = str.charCodeAt(i);
+
+
+    return bufView;
 }
