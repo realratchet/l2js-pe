@@ -1,5 +1,5 @@
 const { promises: { readFile, stat, writeFile }, createReadStream, createWriteStream, write } = require("fs");
-const { BufferValue, UPackage: _UPackage, UNativePackage: _UNativePackage, UExport, UObject, crypto } = require("../import-core")();
+const { BufferValue, UPackage: _UPackage, UNativePackage: _UNativePackage, UExport, UObject, UnProperties, UNP_PropertyTypes, UNP_PropertyMasks, UNP_DataTypeSizes, crypto } = require("../import-core")();
 const path = require("path");
 const { createHash } = require("crypto");
 const { Writable } = require("stream");
@@ -137,7 +137,14 @@ class UPackage extends _UPackage {
         for (const exp of this.exports) {
             if (exp.isFake) continue;
 
-            if (exp.object) {
+            if (exp.object.loadSelf()) {
+                const setProps = [];
+
+                for (const prop of exp.object.propertyDict.values()) {
+                    if (!prop.isSet && !prop.isDefault)
+                        setProps.push(this.getPropBytes(prop));
+                }
+
                 debugger;
             }
 
@@ -288,8 +295,111 @@ class UPackage extends _UPackage {
         debugger;
 
         throw new Error("Not implemented exception");
+    }
 
+    /**
+     * 
+     * @param {UProperty} prop 
+     * @returns {number}
+     */
+    getPropSize(prop) {
+        switch (prop.constructor.name) {
+            case "IntProperty":
+            case "FloatProperty": return 4;
+            case "BoolProperty": return 0;
+            case "ByteProperty": return 1;
+            default:
+                debugger;
+                throw new Error("Unsupported datatype");
+        }
+    }
 
+    /**
+     * 
+     * @param {UProperty} prop 
+     * @returns {ArrayBufferLike}
+     */
+    getTagBytes(prop) {
+        const bytes = [];
+        const nameId = this.nameHash.get(prop.propertyName);
+
+        const nameBytes = getCompatBytes(nameId);
+
+        bytes.push(nameBytes);
+
+        let info = 0;
+        const isArray = prop.arrayDimensions > 1;
+        const isBoolean = prop instanceof UnProperties.UBoolProperty;
+
+        if (isBoolean)
+            debugger;
+
+        if (isBoolean && isArray)
+            debugger;
+
+        if (isArray || isBoolean && prop.getPropertyValue())
+            info |= UNP_PropertyMasks.PROPERTY_ARRAY_MASK;
+
+        const typeName = `UNP_${prop.constructor.friendlyName}`;
+
+        if (!(typeName in UNP_PropertyTypes))
+            throw new Error("Unsupported property type!");
+
+        info |= UNP_PropertyTypes[typeName];
+
+        const dataSize = this.getPropSize(prop);
+
+        let complexDatasize = null;
+
+        switch (dataSize) {
+            case 1: info |= UNP_DataTypeSizes.StaticSize1; break;
+            case 2: info |= UNP_DataTypeSizes.StaticSize2; break;
+            case 4: info |= UNP_DataTypeSizes.StaticSize4; break;
+            case 12: info |= UNP_DataTypeSizes.StaticSize12; break;
+            case 16: info |= UNP_DataTypeSizes.StaticSize16; break;
+            default:
+                if (dataSize > 0xffff) {
+                    info |= UNP_DataTypeSizes.DynamicSizeUint32;
+                    complexDatasize = new Uint32Array([dataSize]).buffer;
+                    break;
+                }
+                if (dataSize > 0xff) {
+                    info |= UNP_DataTypeSizes.DynamicSizeUint16;
+                    complexDatasize = new Uint16Array([dataSize]).buffer;
+                    break;
+                }
+                info |= UNP_DataTypeSizes.DynamicSizeUint8;
+                complexDatasize = new Uint8Array([dataSize]).buffer;
+                break;
+        }
+
+        bytes.push(new Uint8Array([info]).buffer);
+
+        if (complexDatasize !== null) bytes.push(complexDatasize);
+
+        if (isArray) {
+            // prop.
+        }
+
+            if (prop instanceof UnProperties.UIntProperty) {
+
+            } else {
+                debugger;
+                throw new Error("Not yet implemented")
+            }
+
+        return new ArrayBuffer(0);
+    }
+
+    /**
+     * 
+     * @param {UProperty} prop 
+     * @returns {ArrayBufferLike}
+     */
+    getPropBytes(prop) {
+        const tag = this.getTagBytes(prop);
+
+        return new ArrayBuffer(0);
     }
 }
 
@@ -540,3 +650,4 @@ function stringToUtf16(str) {
 
     return bufView;
 }
+
