@@ -138,12 +138,7 @@ class UPackage extends _UPackage {
             if (exp.isFake) continue;
 
             if (exp.object.loadSelf()) {
-                const setProps = [];
-
-                for (const prop of exp.object.propertyDict.values()) {
-                    if (!prop.isSet && !prop.isDefault)
-                        setProps.push(this.getPropBytes(prop));
-                }
+                const [serialized, _] = serializeObject(this.nameHash, exp.object);
 
                 debugger;
             }
@@ -297,110 +292,6 @@ class UPackage extends _UPackage {
         throw new Error("Not implemented exception");
     }
 
-    /**
-     * 
-     * @param {UProperty} prop 
-     * @returns {number}
-     */
-    getPropSize(prop) {
-        switch (prop.constructor.name) {
-            case "IntProperty":
-            case "FloatProperty": return 4;
-            case "BoolProperty": return 0;
-            case "ByteProperty": return 1;
-            default:
-                debugger;
-                throw new Error("Unsupported datatype");
-        }
-    }
-
-    /**
-     * 
-     * @param {UProperty} prop 
-     * @returns {ArrayBufferLike}
-     */
-    getTagBytes(prop) {
-        const bytes = [];
-        const nameId = this.nameHash.get(prop.propertyName);
-
-        const nameBytes = getCompatBytes(nameId);
-
-        bytes.push(nameBytes);
-
-        let info = 0;
-        const isArray = prop.arrayDimensions > 1;
-        const isBoolean = prop instanceof UnProperties.UBoolProperty;
-
-        if (isBoolean)
-            debugger;
-
-        if (isBoolean && isArray)
-            debugger;
-
-        if (isArray || isBoolean && prop.getPropertyValue())
-            info |= UNP_PropertyMasks.PROPERTY_ARRAY_MASK;
-
-        const typeName = `UNP_${prop.constructor.friendlyName}`;
-
-        if (!(typeName in UNP_PropertyTypes))
-            throw new Error("Unsupported property type!");
-
-        info |= UNP_PropertyTypes[typeName];
-
-        const dataSize = this.getPropSize(prop);
-
-        let complexDatasize = null;
-
-        switch (dataSize) {
-            case 1: info |= UNP_DataTypeSizes.StaticSize1; break;
-            case 2: info |= UNP_DataTypeSizes.StaticSize2; break;
-            case 4: info |= UNP_DataTypeSizes.StaticSize4; break;
-            case 12: info |= UNP_DataTypeSizes.StaticSize12; break;
-            case 16: info |= UNP_DataTypeSizes.StaticSize16; break;
-            default:
-                if (dataSize > 0xffff) {
-                    info |= UNP_DataTypeSizes.DynamicSizeUint32;
-                    complexDatasize = new Uint32Array([dataSize]).buffer;
-                    break;
-                }
-                if (dataSize > 0xff) {
-                    info |= UNP_DataTypeSizes.DynamicSizeUint16;
-                    complexDatasize = new Uint16Array([dataSize]).buffer;
-                    break;
-                }
-                info |= UNP_DataTypeSizes.DynamicSizeUint8;
-                complexDatasize = new Uint8Array([dataSize]).buffer;
-                break;
-        }
-
-        bytes.push(new Uint8Array([info]).buffer);
-
-        if (complexDatasize !== null) bytes.push(complexDatasize);
-
-        if (isArray) {
-            // prop.
-        }
-
-            if (prop instanceof UnProperties.UIntProperty) {
-
-            } else {
-                debugger;
-                throw new Error("Not yet implemented")
-            }
-
-        return new ArrayBuffer(0);
-    }
-
-    /**
-     * 
-     * @param {UProperty} prop 
-     * @returns {ArrayBufferLike}
-     */
-    getPropBytes(prop) {
-        const tag = this.getTagBytes(prop);
-
-        return new ArrayBuffer(0);
-    }
 }
 
 class UNativePackage extends _UNativePackage {
@@ -651,3 +542,160 @@ function stringToUtf16(str) {
     return bufView;
 }
 
+/**
+ * @param {Map<string, number>} nameHash
+ * @param {UProperty} prop 
+ * @param {number} index 
+ * @param {number} dataSize
+ * @returns {ArrayBufferLike}
+ */
+function getTagBytes(nameHash, prop, index, dataSize) {
+    const bytes = [];
+    const nameId = nameHash.get(prop.propertyName);
+
+    const nameBytes = getCompatBytes(nameId);
+
+    bytes.push(nameBytes);
+
+    let info = 0;
+    const isArray = prop.arrayDimensions > 1;
+    const isBoolean = prop instanceof UnProperties.UBoolProperty;
+
+    if (isBoolean)
+        debugger;
+
+    if (isBoolean && isArray)
+        debugger;
+
+    if (isArray || isBoolean && prop.getPropertyValue())
+        info |= UNP_PropertyMasks.PROPERTY_ARRAY_MASK;
+
+    const typeName = `UNP_${prop.constructor.friendlyName}`;
+
+    if (!(typeName in UNP_PropertyTypes))
+        throw new Error("Unsupported property type!");
+
+    info |= UNP_PropertyTypes[typeName];
+
+    let complexDatasize = null;
+
+    switch (dataSize) {
+        case 1: info |= UNP_DataTypeSizes.StaticSize1; break;
+        case 2: info |= UNP_DataTypeSizes.StaticSize2; break;
+        case 4: info |= UNP_DataTypeSizes.StaticSize4; break;
+        case 12: info |= UNP_DataTypeSizes.StaticSize12; break;
+        case 16: info |= UNP_DataTypeSizes.StaticSize16; break;
+        default:
+            if (dataSize > 0xffff) {
+                info |= UNP_DataTypeSizes.DynamicSizeUint32;
+                complexDatasize = new Uint32Array([dataSize]).buffer;
+                break;
+            }
+            if (dataSize > 0xff) {
+                info |= UNP_DataTypeSizes.DynamicSizeUint16;
+                complexDatasize = new Uint16Array([dataSize]).buffer;
+                break;
+            }
+            info |= UNP_DataTypeSizes.DynamicSizeUint8;
+            complexDatasize = new Uint8Array([dataSize]).buffer;
+            break;
+    }
+
+    bytes.push(new Uint8Array([info]).buffer);
+
+    if (complexDatasize !== null) bytes.push(complexDatasize);
+
+    if (isArray) {
+        debugger;
+        // prop.
+    }
+
+    return concatenateArrayBuffer(bytes);
+}
+
+/**
+ * 
+ * @param {Map<string, number>} nameHash
+ * @param {UProperty} prop 
+ * * @param {number} index 
+ * @returns {ArrayBufferLike}
+ */
+function getPropBytes(nameHash, prop, index) {
+
+    /**
+     * @type {ArrayBuffer}
+     */
+    let propValueBytes;
+    let noneTerminated = false;
+
+    switch (prop.constructor.name) {
+        case "IntProperty": propValueBytes = new Int32Array([prop.getPropertyValue(index)]).buffer; break;
+        case "FloatProperty": propValueBytes = new Float32Array([prop.getPropertyValue(index)]).buffer; break;
+        case "BoolProperty": propValueBytes = new ArrayBuffer(0); break;
+        case "ByteProperty": propValueBytes = new Uint8Array([prop.getPropertyValue(index)]).buffer; break;
+        case "StructProperty": [propValueBytes, noneTerminated] = serializeObject(nameHash, prop.getPropertyValue(index)); break;
+        case "NameProperty":
+        case "ObjectProperty":
+            propValueBytes = getCompatBytes(prop.propertyValue[index].value);
+            break;
+        default:
+            debugger;
+            throw new Error("Unsupported datatype");
+    }
+
+    const propTagBytes = getTagBytes(nameHash, prop, index, propValueBytes.byteLength);
+    const bytes = [propTagBytes, propValueBytes];
+
+    console.log()
+
+    if (noneTerminated) {
+        const noneId = nameHash.get("None");
+        const noneCompat = getCompatBytes(noneId);
+
+        bytes.push(noneCompat);
+    }
+
+    return concatenateArrayBuffer(bytes);
+}
+
+/**
+ * 
+ * @param {Map<string, number>} nameHash
+ * @param {UObject} object 
+ */
+function serializeObject(nameHash, object) {
+    const setProps = [];
+
+    for (const prop of object.propertyDict.values()) {
+        for (let i = 0; i < prop.arrayDimensions; i++) {
+            if (!prop.isSet[i] || prop.isDefault[i])
+                continue;
+
+            setProps.push(getPropBytes(nameHash, prop, i));
+        }
+    }
+
+    const arrayBuffer = concatenateArrayBuffer(setProps);
+    const isNative = ["Vector", "Rotator", "Color"].includes(object.constructor.friendlyName);
+
+    return [arrayBuffer, !isNative];
+}
+
+/**
+ * 
+ * @param {ArrayBufferLike[]} buffers 
+ */
+function concatenateArrayBuffer(buffers) {
+    const totalLen = buffers.reduce((acc, v) => acc + v.byteLength, 0);
+    const arrayBuffer = new ArrayBuffer(totalLen);
+    const view = new Uint8Array(arrayBuffer)
+
+    for (let i = 0, len = buffers.length, offset = 0; i < len; i++) {
+        const b = buffers[i];
+
+        view.set(new Uint8Array(b), offset);
+        offset = offset + b.byteLength;
+    }
+
+    return arrayBuffer;
+}
