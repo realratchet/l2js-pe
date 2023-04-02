@@ -138,7 +138,9 @@ class UPackage extends _UPackage {
             if (exp.isFake) continue;
 
             if (exp.object.loadSelf()) {
-                const [serialized, _] = serializeObject(this.nameHash, exp.object);
+
+
+                const serialized = serializeObject(this.nameHash, exp.object);
 
                 debugger;
             }
@@ -561,9 +563,6 @@ function getTagBytes(nameHash, prop, index, dataSize) {
     const isArray = prop.arrayDimensions > 1;
     const isBoolean = prop instanceof UnProperties.UBoolProperty;
 
-    if (isBoolean)
-        debugger;
-
     if (isBoolean && isArray)
         debugger;
 
@@ -620,20 +619,19 @@ function getTagBytes(nameHash, prop, index, dataSize) {
  * * @param {number} index 
  * @returns {ArrayBufferLike}
  */
-function getPropBytes(nameHash, prop, index) {
+function getPropBytes(object, nameHash, prop, index) {
 
     /**
      * @type {ArrayBuffer}
      */
     let propValueBytes;
-    let noneTerminated = false;
 
     switch (prop.constructor.name) {
         case "IntProperty": propValueBytes = new Int32Array([prop.getPropertyValue(index)]).buffer; break;
         case "FloatProperty": propValueBytes = new Float32Array([prop.getPropertyValue(index)]).buffer; break;
         case "BoolProperty": propValueBytes = new ArrayBuffer(0); break;
         case "ByteProperty": propValueBytes = new Uint8Array([prop.getPropertyValue(index)]).buffer; break;
-        case "StructProperty": [propValueBytes, noneTerminated] = serializeObject(nameHash, prop.getPropertyValue(index)); break;
+        case "StructProperty": propValueBytes = serializeObject(nameHash, prop.getPropertyValue(index)); break;
         case "NameProperty":
         case "ObjectProperty":
             propValueBytes = getCompatBytes(prop.propertyValue[index].value);
@@ -646,14 +644,9 @@ function getPropBytes(nameHash, prop, index) {
     const propTagBytes = getTagBytes(nameHash, prop, index, propValueBytes.byteLength);
     const bytes = [propTagBytes, propValueBytes];
 
-    console.log()
+    if (object.objectName === "Exp_NMovableSunLight0")
+        console.log("Write property: ", object.objectName, prop.propertyName, propValueBytes.byteLength);
 
-    if (noneTerminated) {
-        const noneId = nameHash.get("None");
-        const noneCompat = getCompatBytes(noneId);
-
-        bytes.push(noneCompat);
-    }
 
     return concatenateArrayBuffer(bytes);
 }
@@ -666,19 +659,78 @@ function getPropBytes(nameHash, prop, index) {
 function serializeObject(nameHash, object) {
     const setProps = [];
 
-    for (const prop of object.propertyDict.values()) {
-        for (let i = 0; i < prop.arrayDimensions; i++) {
-            if (!prop.isSet[i] || prop.isDefault[i])
-                continue;
+    /*
+        Reading property:  Exp_NMovableSunLight0 LightBrightness 4              +
+        Reading property:  Exp_NMovableSunLight0 bDynamicActorFilterState 0     +
+        Reading property:  Exp_NMovableSunLight0 Level 1                        +
+        Reading property:  Exp_NMovableSunLight0 Region 13                      - 1
+        Reading property:  Exp_NMovableSunLight0 Tag 2                          +
+        Reading property:  Exp_NMovableSunLight0 bSunAffect 0                   +
+        Reading property:  Exp_NMovableSunLight0 PhysicsVolume 2                +
+        Reading property:  Exp_NMovableSunLight0 Location 12                    +
+        Reading property:  Exp_NMovableSunLight0 Rotation 12                    +
+        Reading property:  Exp_NMovableSunLight0 DrawScale 4                    +
+        Reading property:  Exp_NMovableSunLight0 SwayRotationOrig 12            +
+        Reading property:  Exp_NMovableSunLight0 TexModifyInfo 32               - 2
+    */
 
-            setProps.push(getPropBytes(nameHash, prop, i));
+    // debugger;
+
+    // for (const prop of object.propertyDict.values()) {
+    //     for (let i = 0; i < prop.arrayDimensions; i++) {
+    //         if (!prop.isSet[i] || prop.isDefault[i])
+    //             continue;
+
+    //         console.log(prop.toString(), i);
+    //     }
+    // }
+
+    // debugger;
+
+    const isNative = ["Vector", "Rotator", "Color"].includes(object.constructor.friendlyName);
+
+    if (isNative) {
+        for (const prop of object.propertyDict.values()) {
+            if (prop.arrayDimensions !== 1)
+                throw new Error("This shouldnt happen");
+
+            switch (prop.constructor.name) {
+                case "FloatProperty": setProps.push(new Float32Array([prop.getPropertyValue()]).buffer); break;
+                case "IntProperty": setProps.push(new Int32Array([prop.getPropertyValue()]).buffer); break;
+                case "ByteProperty": setProps.push(new Uint8Array([prop.getPropertyValue()]).buffer); break;
+                default:
+                    debugger;
+                    throw new Error("This shouldnt happen");
+            }
         }
+    } else {
+        for (const prop of object.propertyDict.values()) {
+            for (let i = 0; i < prop.arrayDimensions; i++) {
+                if (!prop.isSet[i] || prop.isDefault[i])
+                    continue;
+
+                const propBytes = getPropBytes(object, nameHash, prop, i);
+
+                setProps.push(propBytes);
+            }
+        }
+
+
+        const noneId = nameHash.get("None");
+        const noneCompat = getCompatBytes(noneId);
+
+        setProps.push(noneCompat);
+
     }
 
     const arrayBuffer = concatenateArrayBuffer(setProps);
-    const isNative = ["Vector", "Rotator", "Color"].includes(object.constructor.friendlyName);
 
-    return [arrayBuffer, !isNative];
+
+    // if (object.objectName === "Exp_NMovableSunLight0")
+    if (object.objectName === "Exp_Region[Struct]")
+        debugger;
+
+    return arrayBuffer;
 }
 
 /**
