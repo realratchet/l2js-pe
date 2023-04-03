@@ -1,24 +1,10 @@
 const { promises: { readFile, stat, writeFile }, createReadStream, createWriteStream, write } = require("fs");
-const { BufferValue, UPackage: _UPackage, UNativePackage: _UNativePackage, UExport, UObject, UnProperties, UNP_PropertyTypes, UNP_PropertyMasks, UNP_DataTypeSizes, crypto } = require("../import-core")();
+const { BufferValue, UPackage: _UPackage, UNativePackage: _UNativePackage, UExport, UObject, UnProperties, UNP_PropertyTypes, UNP_PropertyMasks, UNP_DataTypeSizes, crypto, UnArrays } = require("../import-core")();
 const path = require("path");
 const { createHash } = require("crypto");
 const { Writable } = require("stream");
 
-const chunks = [];
-
-
-async function hashFile(path, algo = "md5") {
-    const hashFunc = createHash(algo);   // you can also sha256, sha512 etc
-    const contentStream = createReadStream(path);
-
-    await new Promise((resolve, reject) => {
-        contentStream.on("data", (data) => hashFunc.update(data));
-        contentStream.on("close", resolve);
-        contentStream.on("error", reject);
-    });
-
-    return hashFunc.digest("hex");       // will return hash, formatted to HEX
-}
+UObject.UNREAD_AS_NATIVE = true;
 
 class UPackage extends _UPackage {
     async readArrayBuffer() { return (await readFile(this.path)).buffer; }
@@ -42,8 +28,6 @@ class UPackage extends _UPackage {
      */
     async dumpHeader(writer) {
         const header = this.header;
-
-        // 193, 131, 42, 158, 123, 0, 25, 0, 1, 0, 0, 0, 217, 19, 0, 0, 64, 0, 0, 0, 98, 16, 0, 0, 247, 201, 85, 0, 43, 2, 0, 0, 19, 181, 85, 0, 177, 97, 251, 216, 49, 117, 226, 77, 188, 72, 207, 47, 1, 113, 136, 57, 1, 0, 0, 0, 98, 16, 0, 0, 217, 19, 0, 0, 5, 78, 111, 110, 101, 0, 16, 4, 7, 4, 7, 86, 101, 99, 116, 111, 114, 0, 16, 4, 7, 4, 6, 105, 76, 101, 97, 102, 0, 16, 0, 7, 0, 11, 90, 111
 
         if (this.version.startsWith("1")) await writer.writeUint32(this.signature);
         else {
@@ -132,28 +116,33 @@ class UPackage extends _UPackage {
 
         const readable = this.asReadable();
 
-        this.fetchObject(1).loadSelf();
+        // this.fetchObject(1).loadSelf();
+        // this.fetchObject(3131);
 
         for (const exp of this.exports) {
             if (exp.isFake) continue;
 
-            if (exp.object.loadSelf()) {
-
-
+            if (exp.object?.loadSelf()) {
                 const serialized = serializeObject(this.nameHash, exp.object);
 
-                debugger;
+                if (serialized.byteLength !== exp.size) {
+                    debugger;
+                    throw new Error("Re-serialization mismatch");
+                }
+
+                await writer.writeBytes(serialized);
+            } else {
+
+                readable.seek(exp.offset, "set");
+
+                const bytes = readable.read(BufferValue.allocBytes(exp.size)).bytes;
+
+                if (writer.size() !== exp.offset) {
+                    debugger;
+                }
+
+                await writer.writeBytes(bytes.buffer);
             }
-
-            readable.seek(exp.offset, "set");
-
-            const bytes = readable.read(BufferValue.allocBytes(exp.size)).bytes;
-
-            if (writer.size() !== exp.offset) {
-                debugger;
-            }
-
-            await writer.writeBytes(bytes.buffer);
 
             if (writer.size() !== (exp.offset + exp.size)) {
                 debugger;
@@ -171,13 +160,10 @@ class UPackage extends _UPackage {
 
         if (this.version.startsWith("1")) {
             crypto.encoders.encryptModulo(writer.flush(), this.moduloCryptKey);
-            // writer.stream.buffer = Buffer.from(encrypted);
-
 
             const header = stringToUtf16(`Lineage2Ver${this.version}`);
 
             writer.stream.chunksStart.push(Buffer.from(header.buffer));
-            // writer.stream.chunksStart.push(Buffer.alloc(28));
 
             const buffer = writer.flush();
 
@@ -212,9 +198,6 @@ class UPackage extends _UPackage {
                 const string1 = groups.map(g => g.hex.slice(2)).join(" ");
                 const string2 = groups.map(g => g.string).join("");
 
-                // constructedString += string2;
-                // constructedString = constructedString.slice(-100);
-
                 const extraArgs = [];
 
                 let finalString = string1;
@@ -235,13 +218,6 @@ class UPackage extends _UPackage {
 
             console.log(`${offsetHeader}--------------------------------------------------------`);
 
-            /*
-                00000000: 4C00 6900 6E00 6500 6100 6700 6500 3200  L.i.n.e.a.g.e.2.
-                00000010: 5600 6500 7200 3100 3100 3100 6D2F 8632  V.e.r.1.1.1.m/.2
-                00000020: D7AC B5AC ADAC ACAC 75BF ACAC ECAC ACAC  ........u.......
-                00000030: CEBC ACAC 5B65 F9AC 87AE ACAC BF19 F9AC  ....[e..........
-            */
-
             debugger;
         } else {
             debugger;
@@ -250,17 +226,13 @@ class UPackage extends _UPackage {
     }
 
     async toBuffer() {
-        const oldHash = await hashFile(this.path);
         const newPath = this.path + ".new";
-
-        console.log(newPath);
 
         const writeStream = new BufferStream();
 
         try {
             const writer = new ByteWriter(writeStream);
 
-            // await writer.writeBytes(new ArrayBuffer(28));   // fake the signature for the moment
             await this.dumpHeader(writer);
             console.assert(this.header.nameOffset === writer.size());
             await this.dumpNameTable(writer);
@@ -279,17 +251,6 @@ class UPackage extends _UPackage {
         } finally {
             writeStream.close();
         }
-
-        debugger;
-
-        const newHash = await hashFile(newPath);
-
-        if (oldHash !== newHash) {
-            debugger;
-            throw new Error("Hash mismatch!");
-        }
-
-        debugger;
 
         throw new Error("Not implemented exception");
     }
@@ -471,9 +432,7 @@ class ByteWriter {
      * @param {string} value 
      */
     async writeChar(value) {
-        await this.writeUint8(value.length + 1);
-        await this.writeBytes(value);
-        await this.writeUint8(0);
+        await this.writeBytes(getStrBytes(value));
     }
 
     /**
@@ -485,8 +444,27 @@ class ByteWriter {
 
 /**
  * 
+ * @param {UStack} stack 
+ * @returns {ArrayBufferLike}
+ */
+function getStackBytes(stack) {
+    const bytes = [
+        getCompatBytes(stack.nodeId),
+        getCompatBytes(stack.stateNodeId),
+        new BigInt64Array([stack.probeMask]).buffer,
+        new Int32Array([stack.latentAction]).buffer,
+    ];
+
+    if (stack.nodeId !== 0)
+        bytes.push(getCompatBytes(stack.offset));
+
+    return concatenateArrayBuffer(bytes);
+}
+
+/**
+ * 
  * @param {number} value 
- * @returns 
+ * @returns {ArrayBufferLike}
  */
 function getCompatBytes(value) {
     const negative = value < 0;
@@ -526,7 +504,7 @@ function sizeOfCompatInt(value) {
     for (let i = 3, bytes = 5; i >= 0; i--, bytes--) {
         const fit = 1 << (6 + 7 * i);
 
-        if (absValue > fit)
+        if (absValue >= fit)
             return bytes;
     }
 
@@ -602,11 +580,17 @@ function getTagBytes(nameHash, prop, index, dataSize) {
 
     bytes.push(new Uint8Array([info]).buffer);
 
+    if (typeName === "UNP_StructProperty") {
+        const structName = prop.value.friendlyName;
+        const structNameId = nameHash.get(structName);
+
+        bytes.push(getCompatBytes(structNameId));
+    }
+
     if (complexDatasize !== null) bytes.push(complexDatasize);
 
     if (isArray) {
         debugger;
-        // prop.
     }
 
     return concatenateArrayBuffer(bytes);
@@ -616,7 +600,7 @@ function getTagBytes(nameHash, prop, index, dataSize) {
  * 
  * @param {Map<string, number>} nameHash
  * @param {UProperty} prop 
- * * @param {number} index 
+ * @param {number} index 
  * @returns {ArrayBufferLike}
  */
 function getPropBytes(object, nameHash, prop, index) {
@@ -636,6 +620,8 @@ function getPropBytes(object, nameHash, prop, index) {
         case "ObjectProperty":
             propValueBytes = getCompatBytes(prop.propertyValue[index].value);
             break;
+        case "StrProperty": propValueBytes = getStrBytes(prop.getPropertyValue(index)); break;
+        case "ArrayProperty": propValueBytes = getArrayPropertyBytes(nameHash, prop.getPropertyValue(index)); break;
         default:
             debugger;
             throw new Error("Unsupported datatype");
@@ -643,10 +629,6 @@ function getPropBytes(object, nameHash, prop, index) {
 
     const propTagBytes = getTagBytes(nameHash, prop, index, propValueBytes.byteLength);
     const bytes = [propTagBytes, propValueBytes];
-
-    if (object.objectName === "Exp_NMovableSunLight0")
-        console.log("Write property: ", object.objectName, prop.propertyName, propValueBytes.byteLength);
-
 
     return concatenateArrayBuffer(bytes);
 }
@@ -659,33 +641,8 @@ function getPropBytes(object, nameHash, prop, index) {
 function serializeObject(nameHash, object) {
     const setProps = [];
 
-    /*
-        Reading property:  Exp_NMovableSunLight0 LightBrightness 4              +
-        Reading property:  Exp_NMovableSunLight0 bDynamicActorFilterState 0     +
-        Reading property:  Exp_NMovableSunLight0 Level 1                        +
-        Reading property:  Exp_NMovableSunLight0 Region 13                      - 1
-        Reading property:  Exp_NMovableSunLight0 Tag 2                          +
-        Reading property:  Exp_NMovableSunLight0 bSunAffect 0                   +
-        Reading property:  Exp_NMovableSunLight0 PhysicsVolume 2                +
-        Reading property:  Exp_NMovableSunLight0 Location 12                    +
-        Reading property:  Exp_NMovableSunLight0 Rotation 12                    +
-        Reading property:  Exp_NMovableSunLight0 DrawScale 4                    +
-        Reading property:  Exp_NMovableSunLight0 SwayRotationOrig 12            +
-        Reading property:  Exp_NMovableSunLight0 TexModifyInfo 32               - 2
-    */
-
-    // debugger;
-
-    // for (const prop of object.propertyDict.values()) {
-    //     for (let i = 0; i < prop.arrayDimensions; i++) {
-    //         if (!prop.isSet[i] || prop.isDefault[i])
-    //             continue;
-
-    //         console.log(prop.toString(), i);
-    //     }
-    // }
-
-    // debugger;
+    if (object.stack)
+        setProps.push(getStackBytes(object.stack));
 
     const isNative = ["Vector", "Rotator", "Color"].includes(object.constructor.friendlyName);
 
@@ -715,7 +672,6 @@ function serializeObject(nameHash, object) {
             }
         }
 
-
         const noneId = nameHash.get("None");
         const noneCompat = getCompatBytes(noneId);
 
@@ -723,19 +679,16 @@ function serializeObject(nameHash, object) {
 
     }
 
-    const arrayBuffer = concatenateArrayBuffer(setProps);
+    if (object.nativeBytes)
+        setProps.push(object.nativeBytes.bytes.buffer);
 
-
-    // if (object.objectName === "Exp_NMovableSunLight0")
-    if (object.objectName === "Exp_Region[Struct]")
-        debugger;
-
-    return arrayBuffer;
+    return concatenateArrayBuffer(setProps);
 }
 
 /**
  * 
  * @param {ArrayBufferLike[]} buffers 
+ * @returns {ArrayBufferLike}
  */
 function concatenateArrayBuffer(buffers) {
     const totalLen = buffers.reduce((acc, v) => acc + v.byteLength, 0);
@@ -750,4 +703,54 @@ function concatenateArrayBuffer(buffers) {
     }
 
     return arrayBuffer;
+}
+
+/**
+ * 
+ * @param {string} value 
+ * @returns {ArrayBufferLike}
+ */
+function getStrBytes(value) {
+    const len = value.length;
+    const bytes = new Uint8Array(len + 2);
+
+    bytes[0] = value.length + 1;
+
+    for (let i = 0; i < len; i++)
+        bytes[i + 1] = value.charCodeAt(i);
+
+    return bytes.buffer;
+}
+
+/**
+ * 
+ * @param {FArray|FNameArray|FObjectArray|FIndexArray|FPrimitiveArray} array 
+ * @returns {ArrayBufferLike}
+ */
+function getArrayPropertyBytes(nameHash, array) {
+    const bytes = [getCompatBytes(array.length)];
+
+    if (array instanceof UnArrays.FArray) {
+        const constr = array.getConstructor();
+
+        if (constr.isDynamicClass) {
+            for (const obj of array) {
+                bytes.push(serializeObject(nameHash, obj));
+            }
+        } else {
+
+            debugger;
+        }
+    } else if (array instanceof UnArrays.FObjectArray || array instanceof UnArrays.FNameArray) {
+        for (const compat of array.getIndexList()) {
+            bytes.push(getCompatBytes(compat));
+        }
+    } else if (array instanceof UnArrays.FPrimitiveArray) {
+        bytes.push(array.getArrayBufferSlice());
+    } else {
+        debugger;
+        throw new Error("Unsupported array type");
+    }
+
+    return concatenateArrayBuffer(bytes);
 }
