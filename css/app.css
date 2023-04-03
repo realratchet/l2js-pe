@@ -1,6 +1,7 @@
-@import "_example/_example.css";
+@import "_base.css";
 
-.app {
+
+/* .app {
     display: grid;
     grid-template-rows: 1fr 9fr;
 }
@@ -17,4 +18,4 @@
 .app .object-info {
     display: grid;
     grid-template-columns: 1fr 3fr;
-}
+} */

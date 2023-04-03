@@ -11,7 +11,11 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
+        "@emotion/react": "^11.10.6",
+        "@emotion/styled": "^11.10.6",
         "@l2js/core": "https://github.com/realratchet/l2js-core.git",
+        "@mui/icons-material": "^5.11.11",
+        "@mui/material": "^5.11.15",
         "postcss": "^8.4.21",
         "react": "^18.2.0",
         "react-dom": "^18.2.0"
