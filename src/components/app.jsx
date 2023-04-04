@@ -2,7 +2,7 @@ import "../../css/app.css";
 import Header from "./header.jsx";
 import History from "./history.jsx";
 import { ipcRenderer } from "electron";
-import ObjectInfo from "./object-info.jsx";
+import Editor from "./editor.jsx";
 import { Fragment, useState } from "react";
 import { createTheme } from "@mui/material";
 import { ThemeProvider } from "@emotion/react";
@@ -15,7 +15,6 @@ const darkTheme = createTheme({ palette: { mode: "dark" } });
 let statePkg;
 
 
-
 function App() {
     const stateExpGroup = useState("");
     const stateExp = useState("");
@@ -23,12 +22,11 @@ function App() {
 
     statePkg = useState("");
 
-
     return (
         <ThemeProvider theme={darkTheme}>
             <Header pkg={statePkg} expGroup={stateExpGroup} exp={stateExp} />
             <History history={stateHistory} />
-            <ObjectInfo pkg={statePkg} />
+            <Editor pkg={statePkg} history={stateHistory} />
         </ThemeProvider>
     );
 }
@@ -41,6 +39,7 @@ async function onUserInteractionReply(_, { type, payload } = {}) {
     switch (type) {
         case "read-package": setPkg(payload); break;
         case "load-export": break;
+        case "list-packages": break;
         default: throw new Error(`Unsupported event type: ${type}`);
     }
 }

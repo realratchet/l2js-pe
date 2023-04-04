@@ -1,7 +1,9 @@
 const path = require("path");
 const { ipcMain } = require("electron");
-const UPackage = require("./unreal/un-package");
 const AssetLoader = require("./asset-loader");
+const UPackage = require("./unreal/un-package");
+const { promises: { readdir, stat } } = require("fs");
+const { SUPPORTED_EXTENSIONS } = require("./import-core")();
 
 const PATH_LINEAGE2 = process.env.PATH_LINEAGE2;
 
@@ -40,10 +42,39 @@ async function onUserInteraction(sender, { type, payload } = {}) {
         case "export-package":
             activePackage.toBuffer();
             break;
+        case "list-packages":
+            sender.reply("user-interaction-reply", {
+                type,
+                payload: await getPackageList(payload)
+            });
+            break;
         default: throw new Error(`Unsupported event type: ${type}`);
     }
 }
 
 module.exports = function () {
     ipcMain.on("user-interaction", onUserInteraction);
+};
+
+async function getPackageList(dirname) {
+    const packageList = [];
+
+    for (const dirAsset of await readdir(dirname)) {
+        const dirAssetFull = path.resolve(dirname, dirAsset);
+        const dirAssetStat = await stat(dirAssetFull);
+
+        if (!dirAssetStat.isDirectory())
+            continue;
+
+        for (const fname of await readdir(dirAssetFull)) {
+            const filename = path.resolve(dirAssetFull, fname);
+            const ext = path.extname(filename).slice(1).toUpperCase();
+
+            if (SUPPORTED_EXTENSIONS.includes(ext)) {
+                packageList.push(path.join(dirAsset, fname));
+            }
+        }
+    }
+
+    return packageList;
 }
