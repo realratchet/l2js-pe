@@ -12,6 +12,9 @@ document.title = "Lineage2JS - Property Editor";
 
 createRoot(root).render(
     <StrictMode>
+        {/* <div style={{ background: "rgba(255, 0, 0, 0.7)", height: "64px" }}></div>
+        <div style={{ background: "rgba(0, 255, 0, 0.7)", height: "16px" }}></div>
+        <div style={{ background: "rgba(0, 0, 255, 0.7)", display: "flex", flex: 1 }}></div> */}
         <App />
     </StrictMode>
 );
