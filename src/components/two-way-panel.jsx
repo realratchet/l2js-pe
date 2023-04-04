@@ -2,7 +2,22 @@ import { Fragment, useState } from "react";
 import PropTypes from "prop-types";
 import { Box, Container, List, ListItem, styled, Tab, Tabs } from "@mui/material";
 
-const FlexBox = styled(Box)(({ theme }) => ({ display: "flex", flex: 1, overflow: "auto" }));
+const FlexBox = styled(Box)(() => ({ display: "flex", flex: 1, overflow: "auto" }));
+const ScrollableFlexBox = styled(FlexBox)(() => ({
+    scrollbarWidth: 'thin',
+    '&::-webkit-scrollbar': {
+        width: '0.4em',
+    },
+    '&::-webkit-scrollbar-track': {
+        background: "#f1f1f1",
+    },
+    '&::-webkit-scrollbar-thumb': {
+        backgroundColor: '#888',
+    },
+    '&::-webkit-scrollbar-thumb:hover': {
+        background: '#555'
+    }
+}));
 
 function TabPanel(props) {
     const { children, value, index, classes, ...other } = props;
@@ -49,9 +64,7 @@ function TwoWayPanel({ collection, onCreateElement }) {
     const collectionKeys = Object.keys(collection || {});
 
     return (
-        <FlexBox
-            sx={{ height: "100%" }}
-        >
+        <FlexBox sx={{ height: "100%" }}>
             <Tabs
                 orientation="vertical"
                 variant="scrollable"
@@ -66,9 +79,7 @@ function TwoWayPanel({ collection, onCreateElement }) {
                 }
             </Tabs>
             <Fragment>
-                <FlexBox
-                    sx={{ display: "flex", flex: 1, overflow: "auto" }}
-                >
+                <ScrollableFlexBox>
                     {
                         collectionKeys.map((collectionKey, index) => {
                             return (
@@ -86,7 +97,7 @@ function TwoWayPanel({ collection, onCreateElement }) {
                             );
                         })
                     }
-                </FlexBox>
+                </ScrollableFlexBox>
             </Fragment>
         </FlexBox>
     );
