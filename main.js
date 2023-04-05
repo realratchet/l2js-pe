@@ -58,7 +58,8 @@ const { realpathSync } = require("fs");
     }
 
     const { app, BrowserWindow } = require("electron");
-    const addEventHandlers = require("./electron-app/event-handlers");
+    // const addEventHandlers = require("./electron-app/event-handlers");
+    const addEventHandlers = require("./electron-app/events/ipc-server");
 
     addEventHandlers();
 

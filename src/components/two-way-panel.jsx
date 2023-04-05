@@ -88,7 +88,7 @@ function TwoWayPanel({ collection, onCreateElement }) {
                                         {
                                             collection[collectionKeys[index]].map((item, index) => (
                                                 <ListItem key={index}>
-                                                    {onCreateElement(index, item)}
+                                                    {onCreateElement(collectionKey, index, item)}
                                                 </ListItem>
                                             ))
                                         }

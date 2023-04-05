@@ -1,16 +1,23 @@
 import path from "path";
 import { ipcRenderer } from "electron";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import TwoWayPanel from "./two-way-panel.jsx";
 import { ListItemButton } from "@mui/material";
-
-/**
- * @type {[string[], React.Dispatch<React.SetStateAction<string[]>>]}
- */
-let statePkgList;
+import IPCClient from "../../electron-app/events/ipc-client";
 
 function Editor({ pkg: [activePkg,], history: [activeHistory, setHistory] }) {
-    statePkgList = useState([]);
+    const statePkgList = useState([]);
+
+    useEffect(() => {
+        const [, setPkgList] = statePkgList;
+
+        (async function () {
+            setPkgList(await IPCClient.send("user-interaction", {
+                type: "list-packages",
+                payload: process.env.PATH_LINEAGE2
+            }));
+        })();
+    });
 
     if (activeHistory.length === 0) {
         const [activePkgList,] = statePkgList;
@@ -29,9 +36,24 @@ function Editor({ pkg: [activePkg,], history: [activeHistory, setHistory] }) {
             return acc;
         }, {});
 
-        function onCreateItemElement(index, { name }) {
+        async function onClick({ target }) {
+            const collectionId = target.getAttribute("data-collection");
+            const dataId = target.getAttribute("data-index");
+            const pkg = byExt[collectionId][dataId];
+
+            const pkgContents = await IPCClient.send("user-interaction", {
+                type: "read-package",
+                payload: {
+                    path: pkg.path
+                }
+            });
+
+            debugger;
+        }
+
+        function onCreateItemElement(collectionKey, index, { name }) {
             return (
-                <ListItemButton key={index}>
+                <ListItemButton key={index} onClick={onClick} data-collection={collectionKey} data-index={index} data-key={name}>
                     {name}
                 </ListItemButton>
             );
@@ -73,25 +95,3 @@ function Editor({ pkg: [activePkg,], history: [activeHistory, setHistory] }) {
 
 export default Editor;
 export { Editor };
-
-async function onUserInteractionReply(_, { type, payload } = {}) {
-    const [, setPkgList] = statePkgList;
-
-    switch (type) {
-        case "list-packages": setPkgList(payload); break;
-        case "read-package": break;
-        case "load-export": break;
-        default: throw new Error(`Unsupported event type: ${type}`);
-    }
-}
-
-ipcRenderer.on("user-interaction-reply", onUserInteractionReply);
-
-window.addEventListener("DOMContentLoaded", async function () {
-    setTimeout(function () {
-        ipcRenderer.send("user-interaction", {
-            type: "list-packages",
-            payload: process.env.PATH_LINEAGE2
-        });
-    }, 500); // small delay because the debugger within electron takes some time to attach
-});

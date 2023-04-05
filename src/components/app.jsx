@@ -33,15 +33,15 @@ function App() {
 export default App;
 export { App };
 
-async function onUserInteractionReply(_, { type, payload } = {}) {
-    const [, setPkg] = statePkg;
+// async function onUserInteractionReply(_, { type, payload } = {}) {
+//     const [, setPkg] = statePkg;
 
-    switch (type) {
-        case "read-package": setPkg(payload); break;
-        case "load-export": break;
-        case "list-packages": break;
-        default: throw new Error(`Unsupported event type: ${type}`);
-    }
-}
+//     switch (type) {
+//         case "read-package": setPkg(payload); break;
+//         case "load-export": break;
+//         case "list-packages": break;
+//         default: throw new Error(`Unsupported event type: ${type}`);
+//     }
+// }
 
-ipcRenderer.on("user-interaction-reply", onUserInteractionReply);
+// ipcRenderer.on("user-interaction-reply", onUserInteractionReply);
