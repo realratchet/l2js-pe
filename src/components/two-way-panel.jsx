@@ -27,7 +27,7 @@ function TabPanel(props) {
             role="tabpanel"
             hidden={value !== index}
             id={`simple-tabpanel-${index}`}
-            aria-labelledby={`simple-tab-${index}`}
+            style={{ flex: "1" }}
             {...other}
         >
             {value === index && (

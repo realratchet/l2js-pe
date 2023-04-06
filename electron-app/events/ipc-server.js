@@ -29,7 +29,7 @@ class IPCServer {
                 } catch (ex) {
                     if (!messageId) return; // broadcasting, no exceptions
 
-                    debugger;
+                    console.log(ex);
 
                     sender.reply(replyChannel, messageId, {
                         type,
@@ -59,16 +59,37 @@ class IPCServer {
 
             pkg = assetLoader.getPackage(name, type);
         }
-        
+
         await assetLoader.load(pkg);
 
         return pkg.toJSON();
+    }
+
+    async _onFetchExport({ index, name, type, path }) {
+        if (!assetLoader) throw new Error(`No asset loader!`);
+
+        let pkg;
+
+        if (path) pkg = assetLoader.getPackage(path);
+        else {
+            if (!name || !type)
+                throw new Error("To find package a path or name and type must be supplied");
+
+            pkg = assetLoader.getPackage(name, type);
+        }
+
+        await assetLoader.load(pkg);
+
+        const object = pkg.fetchObject(index).loadSelf();
+
+        return object.toJSON();
     }
 
     async ["_on-user-interaction"](type, payload) {
         switch (type) {
             case "list-packages": return await this._onListPackages(payload);
             case "read-package": return await this._onReadPackage(payload);
+            case "fetch-export": return await this._onFetchExport(payload);
             default: throw new Error(`Unsupported event type: ${type}`);
         }
     }

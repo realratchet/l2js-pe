@@ -2,24 +2,32 @@ import path from "path";
 import { ipcRenderer } from "electron";
 import { Fragment, useEffect, useState } from "react";
 import TwoWayPanel from "./two-way-panel.jsx";
-import { ListItemButton } from "@mui/material";
+import { Grid, List, ListItem, ListItemButton, Paper } from "@mui/material";
 import IPCClient from "../../electron-app/events/ipc-client";
+import styled from "@emotion/styled";
+import { Box } from "@mui/system";
 
-function Editor({ pkg: [activePkg,], history: [activeHistory, setHistory] }) {
+function Editor({ pkg: [activePkg,], history }) {
+    const [activeHistory, setHistory] = history;
     const statePkgList = useState([]);
 
     useEffect(() => {
-        const [, setPkgList] = statePkgList;
+        const [pkgList, setPkgList] = statePkgList;
 
-        (async function () {
-            setPkgList(await IPCClient.send("user-interaction", {
-                type: "list-packages",
-                payload: process.env.PATH_LINEAGE2
-            }));
-        })();
+        if (pkgList.length === 0) {
+            (async function () {
+                setPkgList(await IPCClient.send("user-interaction", {
+                    type: "list-packages",
+                    payload: process.env.PATH_LINEAGE2
+                }));
+
+                console.log("package list updated");
+            })();
+        }
     });
 
     if (activeHistory.length === 0) {
+
         const [activePkgList,] = statePkgList;
         const byExt = activePkgList.reduce((acc, fname) => {
             const ext = path.extname(fname);
@@ -48,7 +56,11 @@ function Editor({ pkg: [activePkg,], history: [activeHistory, setHistory] }) {
                 }
             });
 
-            debugger;
+            setHistory([...activeHistory, {
+                type: "package",
+                name: pkg.name,
+                value: pkgContents
+            }]);
         }
 
         function onCreateItemElement(collectionKey, index, { name }) {
@@ -67,23 +79,64 @@ function Editor({ pkg: [activePkg,], history: [activeHistory, setHistory] }) {
         );
     }
 
-    const groups = (activePkg?.exports || null)?.reduce((acc, exp) => {
-        const container = acc[exp.type] = acc[exp.type] || [];
+    const { type, value } = activeHistory[activeHistory.length - 1];
 
-        container.push(exp);
+    switch (type) {
+        case "package": return getPackageEditor(history, value);
+        case "object": return getObjectEditor(history, value);
+        default: throw new Error(`Unsupported history type: ${type}`);
+    }
+}
+
+export default Editor;
+export { Editor };
+
+function getObjectEditor(history, { type, index, filename, value }) {
+    const [activeHistory, setHistory] = history;
+    const groups = Object.entries(value).reduce((acc, [propName, propVal]) => {
+        const category = propVal.category || "None";
+        const container = acc[category] = acc[category] || [];
+
+        container.push({ name: propName, value: propVal });
 
         return acc;
     }, {});
 
-
-    function onCreateItemElement(index, { name }) {
-        return (
-            <ListItemButton key={index}>
-                {name}
-            </ListItemButton>
-        );
+    async function onClick({ target }) {
+        debugger;
     }
 
+    const Item = styled(Paper)(({ theme }) => ({
+        backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
+        ...theme.typography.body2,
+        padding: theme.spacing(1),
+        textAlign: 'center',
+        color: theme.palette.text.secondary,
+    }));
+
+    const FlexBox = styled(Box)(() => ({ display: "flex", flex: 1, overflow: "auto" }));
+
+    function onCreateItemElement(collectionKey, index, { name, value }) {
+        return (
+            <FlexBox key={index} >
+                <Grid container spacing={2}>
+                    <Grid item xs={4}>
+                        <Item>{name}</Item>
+                    </Grid>
+                    <Grid item xs={2}>
+                        <Item>{
+                            value.value === undefined || value.value === null
+                                ? "null"
+                                : value.value instanceof Array
+                                    ? value.value.join(", ")
+                                    : value.value.toString()
+                        }</Item>
+                    </Grid>
+                </Grid>
+            </FlexBox>
+
+        );
+    }
 
     return (
         <TwoWayPanel
@@ -93,5 +146,47 @@ function Editor({ pkg: [activePkg,], history: [activeHistory, setHistory] }) {
     );
 }
 
-export default Editor;
-export { Editor };
+function getPackageEditor(history, { filename, exports }) {
+    const [activeHistory, setHistory] = history;
+    const groups = exports.reduce((acc, exp) => {
+        const container = acc[exp.type] = acc[exp.type] || [];
+
+        container.push(exp);
+
+        return acc;
+    }, {});
+
+    async function onClick({ target }) {
+        const collectionId = target.getAttribute("data-collection");
+        const dataId = target.getAttribute("data-index");
+        const expInfo = groups[collectionId][dataId];
+        const object = await IPCClient.send("user-interaction", {
+            type: "fetch-export",
+            payload: {
+                path: filename,
+                index: expInfo.index + 1
+            }
+        });
+
+        setHistory([...activeHistory, {
+            type: "object",
+            name: object.name,
+            value: object
+        }]);
+    }
+
+    function onCreateItemElement(collectionKey, index, { name }) {
+        return (
+            <ListItemButton key={index} onClick={onClick} data-collection={collectionKey} data-index={index} data-key={name}>
+                {name}
+            </ListItemButton>
+        );
+    }
+
+    return (
+        <TwoWayPanel
+            collection={groups}
+            onCreateElement={onCreateItemElement}
+        />
+    );
+}
