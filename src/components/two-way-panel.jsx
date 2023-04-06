@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { Box, Container, List, ListItem, styled, Tab, Tabs } from "@mui/material";
 
@@ -60,6 +60,10 @@ function TwoWayPanel({ collection, onCreateElement }) {
 
     const [value, setValue] = useState(0);
     const handleChange = (event, newValue) => setValue(newValue);
+
+    useEffect(() => {
+        setValue(0);
+    }, [collection]);
 
     const collectionKeys = Object.keys(collection || {});
 

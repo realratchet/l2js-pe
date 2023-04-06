@@ -33,6 +33,7 @@ function History({ history: [history,] }) {
     if (history.length === 0) {
         breadcrumbs = ([
             <StyledBreadcrumb
+                key={0}
                 component="a"
                 href="#"
                 label={"No package selected"}

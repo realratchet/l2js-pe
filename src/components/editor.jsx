@@ -1,4 +1,5 @@
 import path from "path";
+import * as PropFields from "./property-fields/properties";
 import { ipcRenderer } from "electron";
 import { Fragment, useEffect, useState } from "react";
 import TwoWayPanel from "./two-way-panel.jsx";
@@ -7,14 +8,16 @@ import IPCClient from "../../electron-app/events/ipc-client";
 import styled from "@emotion/styled";
 import { Box } from "@mui/system";
 
-function Editor({ pkg: [activePkg,], history }) {
+function Editor({ history }) {
     const [activeHistory, setHistory] = history;
     const statePkgList = useState([]);
 
     useEffect(() => {
         const [pkgList, setPkgList] = statePkgList;
+        console.log("use editor effect.");
 
         if (pkgList.length === 0) {
+            console.log("need to reload packages");
             (async function () {
                 setPkgList(await IPCClient.send("user-interaction", {
                     type: "list-packages",
@@ -22,7 +25,7 @@ function Editor({ pkg: [activePkg,], history }) {
                 }));
             })();
         }
-    });
+    }, []);
 
     if (activeHistory.length === 0) {
 
@@ -71,6 +74,7 @@ function Editor({ pkg: [activePkg,], history }) {
 
         return (
             <TwoWayPanel
+                key={activeHistory.length}
                 collection={byExt}
                 onCreateElement={onCreateItemElement}
             />
@@ -100,10 +104,6 @@ function getObjectEditor(history, { type, index, filename, value }) {
         return acc;
     }, {});
 
-    async function onClick({ target }) {
-        debugger;
-    }
-
     const Item = styled(Paper)(({ theme }) => ({
         backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
         ...theme.typography.body2,
@@ -122,13 +122,7 @@ function getObjectEditor(history, { type, index, filename, value }) {
                         <Item>{name}</Item>
                     </Grid>
                     <Grid item xs={2}>
-                        <Item>{
-                            value.value === undefined || value.value === null
-                                ? "null"
-                                : value.value instanceof Array
-                                    ? value.value.join(", ")
-                                    : value.value.toString()
-                        }</Item>
+                        <Item>{getPropertyField(value)}</Item>
                     </Grid>
                 </Grid>
             </FlexBox>
@@ -138,6 +132,7 @@ function getObjectEditor(history, { type, index, filename, value }) {
 
     return (
         <TwoWayPanel
+            key={activeHistory.length}
             collection={groups}
             onCreateElement={onCreateItemElement}
         />
@@ -183,8 +178,39 @@ function getPackageEditor(history, { filename, exports }) {
 
     return (
         <TwoWayPanel
+            key={activeHistory.length}
             collection={groups}
             onCreateElement={onCreateItemElement}
         />
     );
+}
+
+function getPropertyField({ type, value }) {
+    let Field;
+
+    switch (type) {
+        case "uint8": Field = PropFields.Uint8Property; break;
+        case "int32": Field = PropFields.Int32Property; break;
+        case "boolean": Field = PropFields.BooleanProperty; break;
+        default: Field = () => `'${type}' not implemented`;
+    }
+
+
+    if (value instanceof Array) {
+        return (
+            <List>
+                {
+                    value.map((v, index) => {
+                        return (
+                            <ListItem key={index}>
+                                <Field value={v} />
+                            </ListItem>
+                        );
+                    })
+                }
+            </List>
+        );
+    }
+
+    return <Field value={value} />;
 }
