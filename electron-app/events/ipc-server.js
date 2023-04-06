@@ -3,7 +3,8 @@ const { ipcMain } = require("electron");
 const ValidChannels = require("./channels");
 const AssetLoader = require("../asset-loader");
 const { promises: { readdir, stat } } = require("fs");
-const { SUPPORTED_EXTENSIONS } = require("../import-core")();
+// const { SUPPORTED_EXTENSIONS } = require("../import-core")();
+const SUPPORTED_EXTENSIONS = ["UNR"];
 
 /**
  * @type {AssetLoader}

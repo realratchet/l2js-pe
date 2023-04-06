@@ -20,8 +20,6 @@ function Editor({ pkg: [activePkg,], history }) {
                     type: "list-packages",
                     payload: process.env.PATH_LINEAGE2
                 }));
-
-                console.log("package list updated");
             })();
         }
     });
