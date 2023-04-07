@@ -8,16 +8,16 @@ import IPCClient from "../../electron-app/events/ipc-client";
 import styled from "@emotion/styled";
 import { Box } from "@mui/system";
 
-function Editor({ history }) {
+function Editor({ history, filter }) {
     const [activeHistory, setHistory] = history;
     const statePkgList = useState([]);
 
+    console.log("hiiii")
+
     useEffect(() => {
         const [pkgList, setPkgList] = statePkgList;
-        console.log("use editor effect.");
 
         if (pkgList.length === 0) {
-            console.log("need to reload packages");
             (async function () {
                 setPkgList(await IPCClient.send("user-interaction", {
                     type: "list-packages",
@@ -76,6 +76,7 @@ function Editor({ history }) {
             <TwoWayPanel
                 key={activeHistory.length}
                 collection={byExt}
+                filter={filter}
                 onCreateElement={onCreateItemElement}
             />
         );
@@ -84,8 +85,8 @@ function Editor({ history }) {
     const { type, value } = activeHistory[activeHistory.length - 1];
 
     switch (type) {
-        case "package": return getPackageEditor(history, value);
-        case "object": return getObjectEditor(history, value);
+        case "package": return getPackageEditor({ history, filter }, value);
+        case "object": return getObjectEditor({ history, filter }, value);
         default: throw new Error(`Unsupported history type: ${type}`);
     }
 }
@@ -93,7 +94,7 @@ function Editor({ history }) {
 export default Editor;
 export { Editor };
 
-function getObjectEditor(history, { type, index, filename, value }) {
+function getObjectEditor({ history, filter }, { type, index, filename, value }) {
     const [activeHistory, setHistory] = history;
     const groups = Object.entries(value).reduce((acc, [propName, propVal]) => {
         const category = propVal.category || "None";
@@ -134,12 +135,13 @@ function getObjectEditor(history, { type, index, filename, value }) {
         <TwoWayPanel
             key={activeHistory.length}
             collection={groups}
+            filter={filter}
             onCreateElement={onCreateItemElement}
         />
     );
 }
 
-function getPackageEditor(history, { filename, exports }) {
+function getPackageEditor({ history, filter }, { filename, exports }) {
     const [activeHistory, setHistory] = history;
     const groups = exports.reduce((acc, exp) => {
         const container = acc[exp.type] = acc[exp.type] || [];
@@ -180,6 +182,7 @@ function getPackageEditor(history, { filename, exports }) {
         <TwoWayPanel
             key={activeHistory.length}
             collection={groups}
+            filter={filter}
             onCreateElement={onCreateItemElement}
         />
     );

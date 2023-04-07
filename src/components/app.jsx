@@ -9,39 +9,17 @@ import { ThemeProvider } from "@emotion/react";
 
 const darkTheme = createTheme({ palette: { mode: "dark" } });
 
-/**
- * @type {[string, React.Dispatch<React.SetStateAction<string>>]}
- */
-let statePkg;
-
-
 function App() {
-    const stateExpGroup = useState("");
-    const stateExp = useState("");
     const stateHistory = useState([]);
-
-    statePkg = useState("");
+    const stateFilter = useState("");
 
     return (
         <ThemeProvider theme={darkTheme}>
-            <Header pkg={statePkg} expGroup={stateExpGroup} exp={stateExp} />
+            <Header filter={stateFilter} />
             <History history={stateHistory} />
-            <Editor pkg={statePkg} history={stateHistory} />
+            <Editor history={stateHistory} filter={stateFilter} />
         </ThemeProvider>
     );
 }
 export default App;
 export { App };
-
-// async function onUserInteractionReply(_, { type, payload } = {}) {
-//     const [, setPkg] = statePkg;
-
-//     switch (type) {
-//         case "read-package": setPkg(payload); break;
-//         case "load-export": break;
-//         case "list-packages": break;
-//         default: throw new Error(`Unsupported event type: ${type}`);
-//     }
-// }
-
-// ipcRenderer.on("user-interaction-reply", onUserInteractionReply);

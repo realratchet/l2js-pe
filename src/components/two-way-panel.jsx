@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { Box, Container, List, ListItem, styled, Tab, Tabs } from "@mui/material";
+import { compareTwoStrings } from "string-similarity"
 
 const FlexBox = styled(Box)(() => ({ display: "flex", flex: 1, overflow: "auto" }));
 const ScrollableFlexBox = styled(FlexBox)(() => ({
@@ -54,7 +55,7 @@ function a11yProps(index) {
     };
 }
 
-function TwoWayPanel({ collection, onCreateElement }) {
+function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement }) {
     if (!collection)
         return <div>Nothing to show.</div>
 
@@ -63,7 +64,14 @@ function TwoWayPanel({ collection, onCreateElement }) {
 
     useEffect(() => {
         setValue(0);
+        // setFilter("");
     }, [collection]);
+
+    // useEffect(() => {
+    //     setFilter("");
+    // }, [value]);
+
+    console.log(filter);
 
     const collectionKeys = Object.keys(collection || {});
 
@@ -85,16 +93,27 @@ function TwoWayPanel({ collection, onCreateElement }) {
             <Fragment>
                 <ScrollableFlexBox>
                     {
-                        collectionKeys.map((collectionKey, index) => {
+                        collectionKeys.length === 0 ? null : [collectionKeys[value]].map((collectionKey, index) => {
                             return (
-                                <TabPanel key={index} value={value} index={index}>
+                                <TabPanel key={index} value={0} index={index}>
                                     <List key={index}>
                                         {
-                                            collection[collectionKeys[index]].map((item, index) => (
-                                                <ListItem key={index}>
-                                                    {onCreateElement(collectionKey, index, item)}
-                                                </ListItem>
-                                            ))
+                                            collection[collectionKeys[value]].map((item, index) => {
+                                                const similarity = filter && filter.length > 0
+                                                    ? item.name.toLowerCase().includes(filter)
+                                                        ? 1
+                                                        : compareTwoStrings(filter.toLowerCase(), item.name.toLowerCase())
+                                                    : 1;
+
+                                                if (similarity < 0.8)
+                                                    return null;
+
+                                                return (
+                                                    <ListItem key={index}>
+                                                        {onCreateElement(collectionKey, index, item)}
+                                                    </ListItem>
+                                                );
+                                            })
                                         }
                                     </List>
                                 </TabPanel>
