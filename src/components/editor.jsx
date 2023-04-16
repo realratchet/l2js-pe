@@ -8,6 +8,18 @@ import IPCClient from "../../electron-app/events/ipc-client";
 import styled from "@emotion/styled";
 import { Box } from "@mui/system";
 
+const Item = styled(Paper)(({ theme }) => ({
+    backgroundColor: theme.palette.mode === "dark" ? "#1A2027" : "#fff",
+    ...theme.typography.body2,
+    padding: theme.spacing(1),
+    textAlign: "center",
+    color: theme.palette.text.secondary,
+    minWidth: "fit-content"
+}));
+
+const FlexBox = styled(Box)(() => ({ display: "flex", flex: 1, overflow: "auto" }));
+
+
 function Editor({ history, filter }) {
     const [activeHistory, setHistory] = history;
     const statePkgList = useState([]);
@@ -102,16 +114,6 @@ function getObjectEditor({ history, filter }, { type, index, filename, value }) 
 
         return acc;
     }, {});
-
-    const Item = styled(Paper)(({ theme }) => ({
-        backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
-        ...theme.typography.body2,
-        padding: theme.spacing(1),
-        textAlign: 'center',
-        color: theme.palette.text.secondary,
-    }));
-
-    const FlexBox = styled(Box)(() => ({ display: "flex", flex: 1, overflow: "auto" }));
 
     function onCreateItemElement(collectionKey, index, { name, value }) {
         return (

@@ -9,7 +9,7 @@ function EnumProperty({ value, enumName, names }) {
     }
 
     return (
-        <Select value={curValue} label={enumName} onChange={handleChange}>
+        <Select style={{ width: "fit-content" }} value={curValue} label={enumName} onChange={handleChange}>
             {
                 names.map((name, index) => <MenuItem key={index} value={index}>{name}</MenuItem>)
             }
