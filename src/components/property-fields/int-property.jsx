@@ -3,33 +3,56 @@ import { TextField } from "@mui/material";
 
 function clamp(x, min, max) { return Math.max(Math.min(x, max), min); }
 
-function IntProperty({ value, label, min, max }) {
-    const regex = /((?<zero>(-|\+)?0)$|^(?<sign>(-|\+)?)0*(?<value>([1-9][0-9]*$)))/;
+function IntProperty({ value, label, min, max, radix = 10 }) {
     const [curValue, setCurValue] = useState(value);
+    const [curError, setError] = useState(false);
+    const [curRadix, setRadix] = useState(radix);
+    const [curDisplayValue, setDisplayCurValue] = useState(value);
 
     function onInput({ target: { value } }) {
+        setDisplayCurValue(value);
 
-        value = value.length === 0 ? "0" : value;
+        try {
+            if (!value.match(/^((0x[\da-fA-F]+)|(\-?[\d]+))$/))
+                throw new Error("Invalid pattern");
 
-        const matches = value.match(regex);
+            let radix = 10;
 
-        if (matches) {
-            const { zero, sign, value } = matches.groups;
+            if (value.startsWith("0x")) radix = 16;
 
-            setCurValue(clamp(zero === undefined ? `${sign}${value}` : 0, min, max));
-            return;
+            const parsedValue = parseInt(value, radix);
+
+            if (!Number.isFinite(parsedValue))
+                throw new Error("Invalid value");
+
+            if (value < min || value > max)
+                throw new Error("Overflow");
+
+            setRadix(radix);
+            setCurValue(parsedValue);
+            setError(false);
+        } catch (e) {
+            setError(true);
         }
     }
 
-    return <TextField
-        id="standard-basic"
-        label={label}
-        variant="standard"
-        value={curValue}
-        inputMode="numeric"
-        type="text"
-        onInput={onInput}
-    />
+    function onBlur() {
+        setDisplayCurValue(curRadix === 16 ? `0x${curValue.toString(curRadix)}` : curValue);
+        setError(false);
+    }
+
+    return (
+        <TextField
+            label={label}
+            variant="standard"
+            value={curDisplayValue}
+            inputMode="numeric"
+            error={curError}
+            type="text"
+            onInput={onInput}
+            onBlur={onBlur}
+        />
+    );
 }
 
 export default IntProperty;

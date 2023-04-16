@@ -3,7 +3,7 @@ import * as PropFields from "./property-fields/properties";
 import { ipcRenderer } from "electron";
 import { Fragment, useEffect, useState } from "react";
 import TwoWayPanel from "./two-way-panel.jsx";
-import { Grid, List, ListItem, ListItemButton, Paper } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Grid, List, ListItem, ListItemButton, Paper } from "@mui/material";
 import IPCClient from "../../electron-app/events/ipc-client";
 import styled from "@emotion/styled";
 import { Box } from "@mui/system";
@@ -11,8 +11,6 @@ import { Box } from "@mui/system";
 function Editor({ history, filter }) {
     const [activeHistory, setHistory] = history;
     const statePkgList = useState([]);
-
-    console.log("hiiii")
 
     useEffect(() => {
         const [pkgList, setPkgList] = statePkgList;
@@ -188,13 +186,23 @@ function getPackageEditor({ history, filter }, { filename, exports }) {
     );
 }
 
-function getPropertyField({ type, value }) {
+function getPropertyField({ type, names, value, enumName }) {
+    const props = {};
+
     let Field;
 
     switch (type) {
         case "uint8": Field = PropFields.Uint8Property; break;
         case "int32": Field = PropFields.Int32Property; break;
         case "boolean": Field = PropFields.BooleanProperty; break;
+        case "name": Field = PropFields.NameProperty; break;
+        case "string": Field = PropFields.StringProperty; break;
+        case "float": Field = PropFields.FloatProperty; break;
+        case "enum":
+            Field = PropFields.EnumProperty;
+            props.enumName = enumName;
+            props.names = names;
+            break;
         default: Field = () => `'${type}' not implemented`;
     }
 
@@ -202,18 +210,23 @@ function getPropertyField({ type, value }) {
     if (value instanceof Array) {
         return (
             <List>
-                {
-                    value.map((v, index) => {
-                        return (
-                            <ListItem key={index}>
-                                <Field value={v} />
-                            </ListItem>
-                        );
-                    })
-                }
+                <Accordion>
+                    <AccordionSummary>{value.length} elements</AccordionSummary>
+                    <AccordionDetails>
+                        {
+                            value.map((v, index) => {
+                                return (
+                                    <ListItem key={index}>
+                                        <Field {...props} value={v} />
+                                    </ListItem>
+                                );
+                            })
+                        }
+                    </AccordionDetails>
+                </Accordion>
             </List>
         );
     }
 
-    return <Field value={value} />;
+    return <Field {...props} value={value} />;
 }
