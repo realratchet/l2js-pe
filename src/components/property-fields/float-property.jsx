@@ -10,7 +10,7 @@ export function FloatProperty({ value }) {
         setDisplayCurValue(value);
 
         try {
-            if (!value.match(/^(\-?[\d]?((\.[\d]?))?)$/))
+            if (!value.match(/^\-?[\d]*\.?[\d]*$/))
                 throw new Error("Invalid pattern");
 
             const parsedValue = parseFloat(value);

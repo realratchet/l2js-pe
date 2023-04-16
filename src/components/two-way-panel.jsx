@@ -71,8 +71,6 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement 
     //     setFilter("");
     // }, [value]);
 
-    console.log(filter);
-
     const collectionKeys = Object.keys(collection || {});
 
     return (

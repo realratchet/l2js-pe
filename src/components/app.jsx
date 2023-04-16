@@ -3,15 +3,26 @@ import Header from "./header.jsx";
 import History from "./history.jsx";
 import { ipcRenderer } from "electron";
 import Editor from "./editor.jsx";
-import { Fragment, useState } from "react";
+import { Fragment, useReducer, useState } from "react";
 import { createTheme } from "@mui/material";
 import { ThemeProvider } from "@emotion/react";
 
 const darkTheme = createTheme({ palette: { mode: "dark" } });
 
+function histReducer(state, { type, payload }) {
+    switch (type) {
+        case "push": state.push(payload); break;
+        default: throw new Error(`Unsupported action: '${type}'`);
+    }
+
+    return state.slice();
+}
+
 function App() {
-    const stateHistory = useState([]);
+    const stateHistory = useReducer(histReducer, []);
     const stateFilter = useState("");
+
+    console.log(stateHistory[0].length);
 
     return (
         <ThemeProvider theme={darkTheme}>

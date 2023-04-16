@@ -1,7 +1,7 @@
 import path from "path";
 import * as PropFields from "./property-fields/properties";
 import { ipcRenderer } from "electron";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import TwoWayPanel from "./two-way-panel.jsx";
 import { Accordion, AccordionDetails, AccordionSummary, Grid, List, ListItem, ListItemButton, Paper } from "@mui/material";
 import IPCClient from "../../electron-app/events/ipc-client";
@@ -18,7 +18,6 @@ const Item = styled(Paper)(({ theme }) => ({
 }));
 
 const FlexBox = styled(Box)(() => ({ display: "flex", flex: 1, overflow: "auto" }));
-
 
 function Editor({ history, filter }) {
     const [activeHistory, setHistory] = history;
@@ -40,20 +39,22 @@ function Editor({ history, filter }) {
     if (activeHistory.length === 0) {
 
         const [activePkgList,] = statePkgList;
-        const byExt = activePkgList.reduce((acc, fname) => {
-            const ext = path.extname(fname);
-            const grpName = ext.slice(1).toUpperCase();
+        const byExt = useMemo(() =>
+            activePkgList.reduce((acc, fname) => {
+                const ext = path.extname(fname);
+                const grpName = ext.slice(1).toUpperCase();
 
-            if (!(grpName in acc))
-                acc[grpName] = [];
+                if (!(grpName in acc))
+                    acc[grpName] = [];
 
-            acc[grpName].push({
-                name: path.basename(fname, ext),
-                path: fname
-            });
+                acc[grpName].push({
+                    name: path.basename(fname, ext),
+                    path: fname
+                });
 
-            return acc;
-        }, {});
+                return acc;
+            }, {})
+        );
 
         async function onClick({ target }) {
             const collectionId = target.getAttribute("data-collection");
@@ -67,11 +68,13 @@ function Editor({ history, filter }) {
                 }
             });
 
-            setHistory([...activeHistory, {
-                type: "package",
-                name: pkg.name,
-                value: pkgContents
-            }]);
+            setHistory({
+                type: "push", payload: {
+                    type: "package",
+                    name: pkg.name,
+                    value: pkgContents
+                }
+            });
         }
 
         function onCreateItemElement(collectionKey, index, { name }) {
@@ -105,15 +108,17 @@ export default Editor;
 export { Editor };
 
 function getObjectEditor({ history, filter }, { type, index, filename, value }) {
-    const [activeHistory, setHistory] = history;
-    const groups = Object.entries(value).reduce((acc, [propName, propVal]) => {
-        const category = propVal.category || "None";
-        const container = acc[category] = acc[category] || [];
+    const [activeHistory,] = history;
+    const groups = useMemo(() =>
+        Object.entries(value).reduce((acc, [propName, propVal]) => {
+            const category = propVal.category || "None";
+            const container = acc[category] = acc[category] || [];
 
-        container.push({ name: propName, value: propVal });
+            container.push({ name: propName, value: propVal });
 
-        return acc;
-    }, {});
+            return acc;
+        }, {})
+    );
 
     function onCreateItemElement(collectionKey, index, { name, value }) {
         return (
@@ -143,13 +148,15 @@ function getObjectEditor({ history, filter }, { type, index, filename, value }) 
 
 function getPackageEditor({ history, filter }, { filename, exports }) {
     const [activeHistory, setHistory] = history;
-    const groups = exports.reduce((acc, exp) => {
-        const container = acc[exp.type] = acc[exp.type] || [];
+    const groups = useMemo(() =>
+        exports.reduce((acc, exp) => {
+            const container = acc[exp.type] = acc[exp.type] || [];
 
-        container.push(exp);
+            container.push(exp);
 
-        return acc;
-    }, {});
+            return acc;
+        }, {})
+    );
 
     async function onClick({ target }) {
         const collectionId = target.getAttribute("data-collection");
@@ -163,11 +170,13 @@ function getPackageEditor({ history, filter }, { filename, exports }) {
             }
         });
 
-        setHistory([...activeHistory, {
-            type: "object",
-            name: object.name,
-            value: object
-        }]);
+        setHistory({
+            type: "push", payload: {
+                type: "object",
+                name: object.name,
+                value: object
+            }
+        });
     }
 
     function onCreateItemElement(collectionKey, index, { name }) {
