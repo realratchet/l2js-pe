@@ -22,8 +22,6 @@ function App() {
     const stateHistory = useReducer(histReducer, []);
     const stateFilter = useState("");
 
-    console.log(stateHistory[0].length);
-
     return (
         <ThemeProvider theme={darkTheme}>
             <Header filter={stateFilter} />

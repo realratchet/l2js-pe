@@ -39,8 +39,10 @@ function Editor({ history, filter }) {
     if (activeHistory.length === 0) {
 
         const [activePkgList,] = statePkgList;
-        const byExt = useMemo(() =>
-            activePkgList.reduce((acc, fname) => {
+        const byExt = useMemo(() => {
+            console.log("recalc ext")
+            return activePkgList.reduce((acc, fname) => {
+
                 const ext = path.extname(fname);
                 const grpName = ext.slice(1).toUpperCase();
 
@@ -53,8 +55,8 @@ function Editor({ history, filter }) {
                 });
 
                 return acc;
-            }, {})
-        );
+            }, {});
+        }, [activePkgList]);
 
         async function onClick({ target }) {
             const collectionId = target.getAttribute("data-collection");
@@ -109,16 +111,16 @@ export { Editor };
 
 function getObjectEditor({ history, filter }, { type, index, filename, value }) {
     const [activeHistory,] = history;
-    const groups = useMemo(() =>
-        Object.entries(value).reduce((acc, [propName, propVal]) => {
+    const groups = useMemo(() => {
+        return Object.entries(value).reduce((acc, [propName, propVal]) => {
             const category = propVal.category || "None";
             const container = acc[category] = acc[category] || [];
 
             container.push({ name: propName, value: propVal });
 
             return acc;
-        }, {})
-    );
+        }, {});
+    }, [value]);
 
     function onCreateItemElement(collectionKey, index, { name, value }) {
         return (
@@ -148,15 +150,15 @@ function getObjectEditor({ history, filter }, { type, index, filename, value }) 
 
 function getPackageEditor({ history, filter }, { filename, exports }) {
     const [activeHistory, setHistory] = history;
-    const groups = useMemo(() =>
-        exports.reduce((acc, exp) => {
+    const groups = useMemo(() => {
+        return exports.reduce((acc, exp) => {
             const container = acc[exp.type] = acc[exp.type] || [];
 
             container.push(exp);
 
             return acc;
         }, {})
-    );
+    }, [exports]);
 
     async function onClick({ target }) {
         const collectionId = target.getAttribute("data-collection");
