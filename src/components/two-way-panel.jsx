@@ -77,7 +77,7 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement,
                                     ? (
                                         <ListItem>
                                             <Typography color="text.primary">
-                                                {filteredItems.length - maxSearchElements} more results...
+                                                {filteredItems.length - maxSearchElements} more hidden results...
                                             </Typography>
                                         </ListItem>
                                     )
