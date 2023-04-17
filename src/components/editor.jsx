@@ -70,13 +70,11 @@ function Editor({ history, filter }) {
                 }
             });
 
-            setHistory({
-                type: "push", payload: {
-                    type: "package",
-                    name: pkg.name,
-                    value: pkgContents
-                }
-            });
+            setHistory([...activeHistory, {
+                type: "package",
+                name: pkg.name,
+                value: pkgContents
+            }]);
         }
 
         function onCreateItemElement(collectionKey, index, { name }) {
@@ -172,13 +170,11 @@ function getPackageEditor({ history, filter }, { filename, exports }) {
             }
         });
 
-        setHistory({
-            type: "push", payload: {
-                type: "object",
-                name: object.name,
-                value: object
-            }
-        });
+        setHistory([...activeHistory, {
+            type: "object",
+            name: object.name,
+            value: object
+        }]);
     }
 
     function onCreateItemElement(collectionKey, index, { name }) {

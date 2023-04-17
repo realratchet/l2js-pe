@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { Box, Container, List, ListItem, styled, Tab, Tabs } from "@mui/material";
 import { compareTwoStrings } from "string-similarity"
 
-function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement }) {
+function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement, minSimilarity = 0.8 }) {
     if (!collection)
         return <div>Nothing to show.</div>
 
@@ -24,15 +24,34 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement 
                 if (name in acc)
                     throw new Error(`'${name}' already exists, can this even happen?`);
 
-                acc[name] = obj;
+                acc[name] = [key, obj];
             }
 
             return acc;
         }, {});
     }, [collection]);
 
-    if (filter?.length > 0) {
+    const filteredItems = useMemo(() => {
+        if (filter.length === 0) return [];
 
+        const filterLower = filter.toLowerCase();
+        const ratings = Object
+            .keys(reverseMap)
+            .map(key => {
+                const keyLower = key.toLowerCase();
+                const similarity = keyLower.includes(filter)
+                    ? 1
+                    : compareTwoStrings(filterLower, keyLower);
+
+                return [key, similarity];
+            })
+            .filter(([k, s]) => s >= minSimilarity)
+            .sort(([, a], [, b]) => b - a);
+
+        return ratings.map(([k,]) => reverseMap[k]);
+    }, [reverseMap, filter]);
+
+    if (filter?.length > 0) {
         return (
             <RootFlexBox key="default">
                 <TabsParent value={value} handleChange={handleChange}>
@@ -40,11 +59,15 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement 
                 </TabsParent>
                 <ScrollableFlexBox>
                     <TabPanel value={0} index={0}>
-                    <List>
-                        <div>aaaa</div>
-                        <div>bbbb</div>
-                        <div>cccc</div>
-                    </List>
+                        <List>
+                            {
+                                filteredItems.map(([collectionKey, item], index) => (
+                                    <ListItem key={index}>
+                                        {onCreateElement(collectionKey, index, item)}
+                                    </ListItem>
+                                ))
+                            }
+                        </List>
                     </TabPanel>
                 </ScrollableFlexBox>
             </RootFlexBox>
