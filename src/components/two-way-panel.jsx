@@ -17,14 +17,14 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement,
 
     const reverseMap = useMemo(() => {
         return Object.keys(collection).reduce((acc, key) => {
-            for (const obj of collection[key]) {
+            collection[key].forEach((obj, index) => {
                 const name = obj.name;
 
                 if (name in acc)
                     throw new Error(`'${name}' already exists, can this even happen?`);
 
-                acc[name] = [key, obj];
-            }
+                acc[name] = [key, obj, index++];
+            });
 
             return acc;
         }, {});
@@ -60,9 +60,9 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement,
                     <TabPanel value={0} index={0}>
                         <List>
                             {
-                                filteredItems.map(([collectionKey, item], index) => (
+                                filteredItems.map(([collectionKey, item, trueIndex], index) => (
                                     <ListItem key={index}>
-                                        {onCreateElement(collectionKey, index, item)}
+                                        {onCreateElement(collectionKey, trueIndex, item)}
                                     </ListItem>
                                 ))
                             }
