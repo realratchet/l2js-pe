@@ -1,9 +1,9 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { Box, Container, List, ListItem, styled, Tab, Tabs } from "@mui/material";
+import { Box, Container, List, ListItem, styled, Tab, Tabs, Typography } from "@mui/material";
 import { compareTwoStrings } from "string-similarity"
 
-function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement, minSimilarity = 0.8 }) {
+function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement, minSimilarity = 0.8, maxSearchElements = 15 }) {
     if (!collection)
         return <div>Nothing to show.</div>
 
@@ -16,21 +16,27 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement,
     }, [collection]);
 
     const reverseMap = useMemo(() => {
+        console.log("recalc revMap");
+
         return Object.keys(collection).reduce((acc, key) => {
-            collection[key].forEach((obj, index) => {
+            let index = 0;
+
+            for (let obj of collection[key]) {
                 const name = obj.name;
 
                 if (name in acc)
                     throw new Error(`'${name}' already exists, can this even happen?`);
 
                 acc[name] = [key, obj, index++];
-            });
+            };
 
             return acc;
         }, {});
     }, [collection]);
 
     const filteredItems = useMemo(() => {
+        console.log("recalc filter");
+
         if (filter.length === 0) return [];
 
         const filterLower = filter.toLowerCase();
@@ -60,11 +66,22 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement,
                     <TabPanel value={0} index={0}>
                         <List>
                             {
-                                filteredItems.map(([collectionKey, item, trueIndex], index) => (
+                                filteredItems.slice(0, 10).map(([collectionKey, item, trueIndex], index) => (
                                     <ListItem key={index}>
                                         {onCreateElement(collectionKey, trueIndex, item)}
                                     </ListItem>
                                 ))
+                            }
+                            {
+                                filteredItems.length > maxSearchElements
+                                    ? (
+                                        <ListItem>
+                                            <Typography color="text.primary">
+                                                {filteredItems.length - maxSearchElements} more results...
+                                            </Typography>
+                                        </ListItem>
+                                    )
+                                    : null
                             }
                         </List>
                     </TabPanel>
