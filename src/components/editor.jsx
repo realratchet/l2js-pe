@@ -128,7 +128,7 @@ function getObjectEditor({ history, filter }, { type, index, filename, value }) 
                         <Item>{name}</Item>
                     </Grid>
                     <Grid item xs={2}>
-                        <Item>{getPropertyField(value)}</Item>
+                        <Item>{getPropertyField(history, value)}</Item>
                     </Grid>
                 </Grid>
             </FlexBox>
@@ -195,7 +195,7 @@ function getPackageEditor({ history, filter }, { filename, exports }) {
     );
 }
 
-function getPropertyField({ type, names, value, enumName }) {
+function getPropertyField(history, { type, names, value, enumName, package: pkg }) {
     const props = {};
 
     let Field;
@@ -212,6 +212,12 @@ function getPropertyField({ type, names, value, enumName }) {
             props.enumName = enumName;
             props.names = names;
             break;
+        case "object":
+            Field = PropFields.ObjectProperty;
+            props.names = names instanceof Array ? names : [names];
+            props.history = history;
+            [props.pkgName, props.pkgExt] = pkg;
+            break;
         default: Field = () => `'${type}' not implemented`;
     }
 
@@ -226,7 +232,7 @@ function getPropertyField({ type, names, value, enumName }) {
                             value.map((v, index) => {
                                 return (
                                     <ListItem key={index}>
-                                        <Field {...props} value={v} />
+                                        <Field index={index} {...props} value={v} />
                                     </ListItem>
                                 );
                             })
@@ -237,5 +243,5 @@ function getPropertyField({ type, names, value, enumName }) {
         );
     }
 
-    return <Field {...props} value={value} />;
+    return <Field index={0} {...props} value={value} />;
 }

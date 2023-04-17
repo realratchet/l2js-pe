@@ -5,3 +5,4 @@ export { NameProperty } from "./name-property.jsx";
 export { StringProperty } from "./string-property.jsx";
 export { FloatProperty } from "./float-property.jsx";
 export { EnumProperty } from "./enum-property.jsx";
+export { ObjectProperty } from "./object-property.jsx";

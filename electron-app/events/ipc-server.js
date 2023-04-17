@@ -66,17 +66,19 @@ class IPCServer {
         return pkg.toJSON();
     }
 
-    async _onFetchExport({ index, name, type, path }) {
+    async _onFetchExport({ index, name, type, path, ext }) {
         if (!assetLoader) throw new Error(`No asset loader!`);
 
         let pkg;
 
         if (path) pkg = assetLoader.getPackage(path);
         else {
-            if (!name || !type)
+            if (!name || (!type && !ext))
                 throw new Error("To find package a path or name and type must be supplied");
 
-            pkg = assetLoader.getPackage(name, type);
+            pkg = ext
+                ? assetLoader.packages.get(name).get(ext)
+                : assetLoader.getPackage(name, type);
         }
 
         await assetLoader.load(pkg);
