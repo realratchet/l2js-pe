@@ -52,9 +52,11 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement,
     }, [reverseMap, filter]);
 
     if (filter?.length > 0) {
+        // debugger;
+
         return (
             <RootFlexBox key="default">
-                <TabsParent value={value} handleChange={handleChange}>
+                <TabsParent value={0} handleChange={handleChange}>
                     <Tab label="Search" {...a11yProps("Search")} />
                 </TabsParent>
                 <ScrollableFlexBox>
