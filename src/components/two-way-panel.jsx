@@ -17,7 +17,6 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement,
 
     const reverseMap = useMemo(() => {
         return Object.keys(collection).reduce((acc, key) => {
-
             for (const obj of collection[key]) {
                 const name = obj.name;
 
@@ -52,8 +51,6 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement,
     }, [reverseMap, filter]);
 
     if (filter?.length > 0) {
-        // debugger;
-
         return (
             <RootFlexBox key="default">
                 <TabsParent value={0} handleChange={handleChange}>
@@ -75,10 +72,6 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement,
             </RootFlexBox>
         );
     }
-
-    // useEffect(() => {
-    //     setFilter("");
-    // }, [value]);
 
     const collectionKeys = Object.keys(collection || {});
 
