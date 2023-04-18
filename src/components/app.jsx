@@ -4,8 +4,9 @@ import History from "./history.jsx";
 import { ipcRenderer } from "electron";
 import Editor from "./editor.jsx";
 import { useState } from "react";
-import { createTheme } from "@mui/material";
+import { createTheme, Divider } from "@mui/material";
 import { ThemeProvider } from "@emotion/react";
+import styled from "@emotion/styled";
 
 const darkTheme = createTheme({ palette: { mode: "dark" } });
 
@@ -17,6 +18,7 @@ function App() {
         <ThemeProvider theme={darkTheme}>
             <Header filter={stateFilter} />
             <History history={stateHistory} />
+            <Divider />
             <Editor history={stateHistory} filter={stateFilter} />
         </ThemeProvider>
     );

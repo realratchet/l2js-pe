@@ -3,6 +3,7 @@ import ClassIcon from "@mui/icons-material/Class";
 import CategoryIcon from "@mui/icons-material/Category";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 import { Breadcrumbs, Chip, emphasize, Typography } from "@mui/material";
 
 
@@ -69,6 +70,16 @@ function History({ history: [history,] }) {
                             icon={<ClassIcon fontSize="small" />}
                         />
                     );
+                default:
+                    return (
+                        <StyledBreadcrumb
+                            key={index}
+                            component="a"
+                            href="#"
+                            label={`Unsupported breadcrub type '${type}'`}
+                            icon={<QuestionMarkIcon fontSize="small" />}
+                        />
+                    );
             }
         });
     }
@@ -76,7 +87,7 @@ function History({ history: [history,] }) {
     return (
         <Breadcrumbs maxItems={7}
             separator={<NavigateNextIcon fontSize="small" />}
-            aria-label="breadcrumb"
+            style={{padding: "16px"}}
         >
             {breadcrumbs}
         </Breadcrumbs>

@@ -40,7 +40,6 @@ function Editor({ history, filter }) {
 
         const [activePkgList,] = statePkgList;
         const byExt = useMemo(() => {
-            console.log("recalc ext")
             return activePkgList.reduce((acc, fname) => {
 
                 const ext = path.extname(fname);
@@ -100,7 +99,10 @@ function Editor({ history, filter }) {
     switch (type) {
         case "package": return getPackageEditor({ history, filter }, value);
         case "object": return getObjectEditor({ history, filter }, value);
-        default: throw new Error(`Unsupported history type: ${type}`);
+        default: {
+            useMemo(() => { });
+            return <div>{`Unsupported history type '${type}'`}</div>
+        };
     }
 }
 
@@ -120,15 +122,21 @@ function getObjectEditor({ history, filter }, { type, index, filename, value }) 
         }, {});
     }, [value]);
 
-    function onCreateItemElement(collectionKey, index, { name, value }) {
+    const object = {
+        type: "object",
+        index,
+        filename
+    };
+
+    function onCreateItemElement(collectionKey, index, { name: propertyName, value: propertyValue }) {
         return (
             <FlexBox key={index} >
                 <Grid container spacing={2}>
                     <Grid item xs={4}>
-                        <Item>{name}</Item>
+                        <Item>{propertyName}</Item>
                     </Grid>
                     <Grid item xs={2}>
-                        <Item>{getPropertyField(history, value)}</Item>
+                        <Item>{getPropertyField(history, object, propertyName, propertyValue)}</Item>
                     </Grid>
                 </Grid>
             </FlexBox>
@@ -195,7 +203,7 @@ function getPackageEditor({ history, filter }, { filename, exports }) {
     );
 }
 
-function getPropertyField(history, { type, names, value, enumName, package: pkg }) {
+function getPropertyField(history, object, propertyName, { type, names, value, enumName, package: pkg }) {
     const props = {};
 
     let Field;
@@ -217,6 +225,12 @@ function getPropertyField(history, { type, names, value, enumName, package: pkg 
             props.names = names instanceof Array ? names : [names];
             props.history = history;
             [props.pkgName, props.pkgExt] = pkg;
+            break;
+        case "struct":
+            props.name = propertyName;
+            props.object = object;
+            props.history = history;
+            Field = PropFields.StructProperty;
             break;
         default: Field = () => `'${type}' not implemented`;
     }

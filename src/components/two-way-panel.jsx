@@ -16,8 +16,6 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement,
     }, [collection]);
 
     const reverseMap = useMemo(() => {
-        console.log("recalc revMap");
-
         return Object.keys(collection).reduce((acc, key) => {
             let index = 0;
 
@@ -35,8 +33,6 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement,
     }, [collection]);
 
     const filteredItems = useMemo(() => {
-        console.log("recalc filter");
-
         if (filter.length === 0) return [];
 
         const filterLower = filter.toLowerCase();
@@ -44,14 +40,27 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement,
             .keys(reverseMap)
             .map(key => {
                 const keyLower = key.toLowerCase();
-                const similarity = keyLower.includes(filter)
+                const similarity = keyLower.includes(filterLower)
                     ? 1
                     : compareTwoStrings(filterLower, keyLower);
 
                 return [key, similarity];
             })
             .filter(([k, s]) => s >= minSimilarity)
-            .sort(([, a], [, b]) => b - a);
+            .sort(([sa, a], [sb, b]) => {
+                const result = b - a;
+
+                if (result !== 0) return result;
+
+                const lenResult = sa.length - sb.length;
+
+                if (lenResult !== 0) return lenResult
+
+                if (sb > sa) return -1;
+                if (sa === sb) return 0;
+
+                return 1;
+            });
 
         return ratings.map(([k,]) => reverseMap[k]);
     }, [reverseMap, filter]);
@@ -66,7 +75,7 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement,
                     <TabPanel value={0} index={0}>
                         <List>
                             {
-                                filteredItems.slice(0, 10).map(([collectionKey, item, trueIndex], index) => (
+                                filteredItems.slice(0, maxSearchElements).map(([collectionKey, item, trueIndex], index) => (
                                     <ListItem key={index}>
                                         {onCreateElement(collectionKey, trueIndex, item)}
                                     </ListItem>
