@@ -66,6 +66,8 @@ The implementation is not complete:
 - [x] Display object list within package
 - [x] Display property list within package
 - [x] Array type support
+- [x] Traversal history implementation
+- [x] Search functionality
 - [ ] Support for all property types
     - [x] Byte
     - [x] Enumeration
@@ -81,3 +83,4 @@ The implementation is not complete:
 - [ ] Persistent changes to properties
 - [ ] Ability to save changes to disk
 - [ ] Improve property editor UI to be more uniform (`low priority`)
+- [ ] Installation/startup guide (`low priority`)
