@@ -94,11 +94,13 @@ function Editor({ history, filter }) {
         );
     }
 
-    const { type, value } = activeHistory[activeHistory.length - 1];
+    const value = activeHistory[activeHistory.length - 1];
+    const type = value.type;
 
     switch (type) {
         case "package": return getPackageEditor({ history, filter }, value);
         case "object": return getObjectEditor({ history, filter }, value);
+        case "struct": return getStructEditor({ history, filter }, value);
         default: {
             useMemo(() => { });
             return <div>{`Unsupported history type '${type}'`}</div>
@@ -109,7 +111,52 @@ function Editor({ history, filter }) {
 export default Editor;
 export { Editor };
 
-function getObjectEditor({ history, filter }, { type, index, filename, value }) {
+function getStructEditor({ history, filter }, { parent, propertyName, value: {type, value} }) {
+    const [activeHistory,] = history;
+    const groups = useMemo(() => {
+        return Object.entries(value).reduce((acc, [propName, propVal]) => {
+            const category = propVal.category || "None";
+            const container = acc[category] = acc[category] || [];
+
+            container.push({ name: propName, value: propVal });
+
+            return acc;
+        }, {});
+    }, [value]);
+
+    const object = {
+        type: "struct",
+        parent,
+        propertyName
+    };
+
+    function onCreateItemElement(collectionKey, index, { name: propertyName, value: propertyValue }) {
+        return (
+            <FlexBox key={index} >
+                <Grid container spacing={2}>
+                    <Grid item xs={4}>
+                        <Item>{propertyName}</Item>
+                    </Grid>
+                    <Grid item xs={2}>
+                        <Item>{getPropertyField(history, object, propertyName, propertyValue)}</Item>
+                    </Grid>
+                </Grid>
+            </FlexBox>
+
+        );
+    }
+
+    return (
+        <TwoWayPanel
+            key={activeHistory.length}
+            collection={groups}
+            filter={filter}
+            onCreateElement={onCreateItemElement}
+        />
+    );
+}
+
+function getObjectEditor({ history, filter }, { value: { type, index, filename, value } }) {
     const [activeHistory,] = history;
     const groups = useMemo(() => {
         return Object.entries(value).reduce((acc, [propName, propVal]) => {
@@ -154,7 +201,7 @@ function getObjectEditor({ history, filter }, { type, index, filename, value }) 
     );
 }
 
-function getPackageEditor({ history, filter }, { filename, exports }) {
+function getPackageEditor({ history, filter }, { value: { filename, exports } }) {
     const [activeHistory, setHistory] = history;
     const groups = useMemo(() => {
         return exports.reduce((acc, exp) => {
