@@ -8,7 +8,7 @@ function StructProperty({ history: [activeHistory, setHistory], value, name, obj
     async function onClick() {
         setHistory([...activeHistory, {
             type: "struct",
-            name: structName,
+            name: name,
             parent: object,
             propertyName: name,
             value
