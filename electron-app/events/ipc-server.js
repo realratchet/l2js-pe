@@ -88,11 +88,27 @@ class IPCServer {
         return object.toJSON();
     }
 
+    async _onUpdateProperty({ object: { filename, index }, propertyName, propertyIndex }) {
+        if (!assetLoader) throw new Error(`No asset loader!`);
+
+        console.log(filename);
+
+        const pkg = assetLoader.getPackage(filename);
+
+        if (!pkg.isDecoded())
+            throw new Error("Cannot set property for package that was never decoded? How did this happen?");
+
+        console.log(pkg);
+
+        debugger;
+    }
+
     async ["_on-user-interaction"](type, payload) {
         switch (type) {
             case "list-packages": return await this._onListPackages(payload);
             case "read-package": return await this._onReadPackage(payload);
             case "fetch-export": return await this._onFetchExport(payload);
+            case "update-property": return await this._onUpdateProperty(payload);
             default: throw new Error(`Unsupported event type: ${type}`);
         }
     }

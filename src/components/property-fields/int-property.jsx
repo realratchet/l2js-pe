@@ -1,13 +1,17 @@
 import React, { useState } from "react";
 import { TextField } from "@mui/material";
+import IPCClient from "../../../electron-app/events/ipc-client";
 
 function clamp(x, min, max) { return Math.max(Math.min(x, max), min); }
+function toDisplay(value, radix) {
+    return radix === 16 ? `0x${("00" + value.toString(radix)).slice(-2).toUpperCase()}` : value;
+}
 
-function IntProperty({ value, label, min, max, radix = 10 }) {
+function IntProperty({ value, label, min, max, object, propertyName, index, isSet, radix = 10 }) {
     const [curValue, setCurValue] = useState(value);
     const [curError, setError] = useState(false);
     const [curRadix, setRadix] = useState(radix);
-    const [curDisplayValue, setDisplayCurValue] = useState(value);
+    const [curDisplayValue, setDisplayCurValue] = useState(toDisplay(value, radix));
 
     function onInput({ target: { value } }) {
         setDisplayCurValue(value);
@@ -36,9 +40,19 @@ function IntProperty({ value, label, min, max, radix = 10 }) {
         }
     }
 
+
     function onBlur() {
-        setDisplayCurValue(curRadix === 16 ? `0x${curValue.toString(curRadix)}` : curValue);
+        setDisplayCurValue(toDisplay(curValue, curRadix));
         setError(false);
+
+        IPCClient.send("user-interaction", {
+            type: "update-property",
+            payload: {
+                object,
+                propertyName,
+                propertyIndex: index
+            }
+        });
     }
 
     return (

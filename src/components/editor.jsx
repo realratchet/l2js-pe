@@ -1,6 +1,5 @@
 import path from "path";
 import * as PropFields from "./property-fields/properties";
-import { ipcRenderer } from "electron";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import TwoWayPanel from "./two-way-panel.jsx";
 import { Accordion, AccordionDetails, AccordionSummary, Grid, List, ListItem, ListItemButton, Paper } from "@mui/material";
@@ -18,6 +17,15 @@ const Item = styled(Paper)(({ theme }) => ({
 }));
 
 const FlexBox = styled(Box)(() => ({ display: "flex", flex: 1, overflow: "auto" }));
+const SetItem = styled(Item)(({ theme }) => ({
+    color: "rgba(255, 255, 200, 0.7)",
+    backgroundColor: "rgba(26, 32, 0, 0.7)"
+}));
+
+const SetListItem = styled(ListItem)(({ theme }) => ({
+    color: "rgba(255, 255, 100, 0.7)",
+    backgroundColor: "rgba(26, 32, 0, 0.3)"
+}));
 
 function Editor({ history, filter }) {
     const [activeHistory, setHistory] = history;
@@ -111,10 +119,10 @@ function Editor({ history, filter }) {
 export default Editor;
 export { Editor };
 
-function getStructEditor({ history, filter }, { parent, propertyName, value: {type, value} }) {
+function getStructEditor({ history, filter }, { parent, propertyName, value: { type, value } }) {
     const [activeHistory,] = history;
     const groups = useMemo(() => {
-        return Object.entries(value).reduce((acc, [propName, propVal]) => {
+        const props = Object.entries(value).reduce((acc, [propName, propVal]) => {
             const category = propVal.category || "None";
             const container = acc[category] = acc[category] || [];
 
@@ -122,6 +130,16 @@ function getStructEditor({ history, filter }, { parent, propertyName, value: {ty
 
             return acc;
         }, {});
+
+        for (let v of Object.values(props)) {
+            v.sort(({ value: { isSet: a } }, { value: { isSet: b } }) => {
+                const _a = a.includes(true) ? 1 : 0, _b = b.includes(true) ? 1 : 0;
+
+                return _b - _a;
+            })
+        }
+
+        return props;
     }, [value]);
 
     const object = {
@@ -131,14 +149,16 @@ function getStructEditor({ history, filter }, { parent, propertyName, value: {ty
     };
 
     function onCreateItemElement(collectionKey, index, { name: propertyName, value: propertyValue }) {
+        const ThemedItem = propertyValue.isSet.includes(true) ? SetItem : Item;
+
         return (
             <FlexBox key={index} >
                 <Grid container spacing={2}>
                     <Grid item xs={4}>
-                        <Item>{propertyName}</Item>
+                        <ThemedItem>{propertyName}</ThemedItem>
                     </Grid>
                     <Grid item xs={2}>
-                        <Item>{getPropertyField(history, object, propertyName, propertyValue)}</Item>
+                        {getPropertyField(history, object, propertyName, propertyValue)}
                     </Grid>
                 </Grid>
             </FlexBox>
@@ -159,7 +179,7 @@ function getStructEditor({ history, filter }, { parent, propertyName, value: {ty
 function getObjectEditor({ history, filter }, { value: { type, index, filename, value } }) {
     const [activeHistory,] = history;
     const groups = useMemo(() => {
-        return Object.entries(value).reduce((acc, [propName, propVal]) => {
+        const props = Object.entries(value).reduce((acc, [propName, propVal]) => {
             const category = propVal.category || "None";
             const container = acc[category] = acc[category] || [];
 
@@ -167,6 +187,16 @@ function getObjectEditor({ history, filter }, { value: { type, index, filename, 
 
             return acc;
         }, {});
+
+        for (let v of Object.values(props)) {
+            v.sort(({ value: { isSet: a } }, { value: { isSet: b } }) => {
+                const _a = a.includes(true) ? 1 : 0, _b = b.includes(true) ? 1 : 0;
+
+                return _b - _a;
+            })
+        }
+
+        return props;
     }, [value]);
 
     const object = {
@@ -176,14 +206,16 @@ function getObjectEditor({ history, filter }, { value: { type, index, filename, 
     };
 
     function onCreateItemElement(collectionKey, index, { name: propertyName, value: propertyValue }) {
+        const ThemedItem = propertyValue.isSet.includes(true) ? SetItem : Item;
+
         return (
             <FlexBox key={index} >
                 <Grid container spacing={2}>
                     <Grid item xs={4}>
-                        <Item>{propertyName}</Item>
+                        <ThemedItem>{propertyName}</ThemedItem>
                     </Grid>
                     <Grid item xs={2}>
-                        <Item>{getPropertyField(history, object, propertyName, propertyValue)}</Item>
+                        {getPropertyField(history, object, propertyName, propertyValue)}
                     </Grid>
                 </Grid>
             </FlexBox>
@@ -250,7 +282,7 @@ function getPackageEditor({ history, filter }, { value: { filename, exports } })
     );
 }
 
-function getPropertyField(history, object, propertyName, { type, names, value, enumName, package: pkg }) {
+function getPropertyField(history, object, propertyName, { type, dynamic, isSet, isDefault, names, value, enumName, package: pkg }) {
     const props = {};
 
     let Field;
@@ -275,34 +307,103 @@ function getPropertyField(history, object, propertyName, { type, names, value, e
             break;
         case "struct":
             props.name = propertyName;
-            props.object = object;
             props.history = history;
             Field = PropFields.StructProperty;
             break;
-        default: Field = () => `'${type}' not implemented`;
+
+        default: Field = () => `'${type}' not implemented`; break;
     }
 
 
     if (value instanceof Array) {
-        return (
-            <List>
-                <Accordion>
-                    <AccordionSummary>{value.length} elements</AccordionSummary>
-                    <AccordionDetails>
-                        {
-                            value.map((v, index) => {
-                                return (
-                                    <ListItem key={index}>
-                                        <Field index={index} {...props} value={v} />
-                                    </ListItem>
-                                );
-                            })
-                        }
-                    </AccordionDetails>
-                </Accordion>
-            </List>
-        );
+        const arrLen = value.length;
+        const ThemedItem = dynamic && isSet[0] ? SetItem : Item;
+
+        if (arrLen <= 100) {
+            return (
+                <ThemedItem>
+                    <List>
+                        <Accordion>
+                            <AccordionSummary>{arrLen} elements</AccordionSummary>
+                            <AccordionDetails>
+                                {
+                                    value.map((v, index) => {
+                                        const ThemedListItem = !dynamic && isSet[index] ? SetListItem : ListItem;
+
+                                        return (
+                                            <ThemedListItem key={index}>
+                                                <Field
+                                                    index={index}
+                                                    isSet={isSet}
+                                                    isDefault={isDefault}
+                                                    propertyName={propertyName}
+                                                    object={object}
+                                                    {...props}
+                                                    value={v} />
+                                            </ThemedListItem>
+                                        );
+                                    })
+                                }
+                            </AccordionDetails>
+                        </Accordion>
+                    </List>
+                </ThemedItem>
+            );
+        }
+
+        const elements = [];
+
+        for (let startIndex = 0, i = 0; startIndex < arrLen; i++) {
+            const finishIndex = Math.min(startIndex + 100, arrLen);
+
+            elements.push(
+                <List index={i}>
+                    <Accordion>
+                        <AccordionSummary>{startIndex} - {finishIndex} elements</AccordionSummary>
+                        <AccordionDetails>
+                            {
+                                value
+                                    .slice(startIndex, finishIndex)
+                                    .map((v, index) => {
+                                        const ThemedListItem = !dynamic && isSet[index] ? SetListItem : ListItem;
+
+                                        return (
+                                            <ThemedListItem key={index}>
+                                                <Field
+                                                    index={index}
+                                                    isSet={isSet}
+                                                    isDefault={isDefault}
+                                                    propertyName={propertyName}
+                                                    object={object}
+                                                    {...props}
+                                                    value={v} />
+                                            </ThemedListItem>
+                                        );
+                                    })
+                            }
+                        </AccordionDetails>
+                    </Accordion>
+                </List>
+            );
+
+            startIndex = finishIndex;
+        }
+
+        return <ThemedItem>{elements}</ThemedItem>;
     }
 
-    return <Field index={0} {...props} value={value} />;
+    const ThemedItem = isSet[0] ? SetItem : Item;
+
+    return (
+        <ThemedItem>
+            <Field
+                index={0}
+                isSet={isSet}
+                isDefault={isDefault}
+                propertyName={propertyName}
+                object={object}
+                {...props}
+                value={value} />
+        </ThemedItem>
+    );
 }

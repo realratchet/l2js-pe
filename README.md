@@ -79,7 +79,18 @@ The implementation is not complete:
     - [x] Object
     - [ ] Class
     - [x] Struct
+    - [x] Array types
     - [ ] List types
+        - [x] Byte
+        - [ ] Enumeration
+        - [ ] Boolean
+        - [ ] ASCII string
+        - [ ] UTF-16 string
+        - [x] Integer
+        - [x] Float
+        - [x] Object
+        - [ ] Class
+        - [x] Struct
 - [ ] Persistent changes to properties
 - [ ] Ability to save changes to disk
 - [ ] Improve property editor UI to be more uniform (`low priority`)
