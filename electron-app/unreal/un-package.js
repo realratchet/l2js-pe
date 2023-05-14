@@ -226,8 +226,6 @@ class UPackage extends _UPackage {
     }
 
     async toBuffer() {
-        const newPath = this.path + ".new";
-
         const writeStream = new BufferStream();
 
         try {
@@ -246,13 +244,20 @@ class UPackage extends _UPackage {
 
             await this.encrypt(writer);
 
-            await writeFile(newPath, writeStream.flush())
+            writeStream.flush()
 
+            return writeStream;
         } finally {
             writeStream.close();
         }
 
-        throw new Error("Not implemented exception");
+    }
+
+    async savePackage() {
+        const writeStream = await this.toBuffer();
+        const newPath = this.path + ".new";
+
+        await writeFile(newPath, writeStream);
     }
 
 }

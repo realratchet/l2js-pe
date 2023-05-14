@@ -103,12 +103,36 @@ class IPCServer {
         debugger;
     }
 
+    async _onSavePackage({ index, name, type, path, ext }) {
+        if (!assetLoader) throw new Error(`No asset loader!`);
+
+        debugger;
+
+        let pkg;
+
+        if (path) pkg = assetLoader.getPackage(path);
+        else {
+            if (!name || (!type && !ext))
+                throw new Error("To find package a path or name and type must be supplied");
+
+            pkg = ext
+                ? assetLoader.packages.get(name).get(ext)
+                : assetLoader.getPackage(name, type);
+        }
+
+        if (!pkg.isDecoded())
+            throw new Error("Cannot set property for package that was never decoded? How did this happen?");
+
+        await pkg.savePackage();
+    }
+
     async ["_on-user-interaction"](type, payload) {
         switch (type) {
             case "list-packages": return await this._onListPackages(payload);
             case "read-package": return await this._onReadPackage(payload);
             case "fetch-export": return await this._onFetchExport(payload);
             case "update-property": return await this._onUpdateProperty(payload);
+            case "save-package": return await this._onSavePackage(payload);
             default: throw new Error(`Unsupported event type: ${type}`);
         }
     }

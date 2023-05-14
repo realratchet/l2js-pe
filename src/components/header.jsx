@@ -8,6 +8,11 @@ import Typography from "@mui/material/Typography";
 import InputBase from "@mui/material/InputBase";
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
+import { ListItemIcon, Menu, MenuItem } from "@mui/material";
+import { useState } from "react";
+import FolderIcon from "@mui/icons-material/Folder";
+import SaveIcon from "@mui/icons-material/Save";
+import IPCClient from "../../electron-app/events/ipc-client";
 
 const Search = styled("div")(({ theme }) => ({
     position: "relative",
@@ -57,9 +62,46 @@ const StyledLink = styled("a")(() => ({
     cursor: "pointer"
 }));
 
-function Header({ filter: [filter, setFilter] }) {
+function Header({ filter: [filter, setFilter], history: [history,] }) {
 
     function onSearch({ target: { value } }) { setFilter(value); }
+
+    const [anchorEl, setAnchorEl] = useState(null);
+    const open = !!anchorEl;
+
+    function handleClickListItem(event) { setAnchorEl(event.currentTarget); }
+    function handleClose() { setAnchorEl(null); }
+
+    function onLoadDirectory() { console.log("onLoadDirectory"); }
+    async function onSaveChanges() {
+        let lastHistory = history[history.length - 1];
+        let path = null;
+
+        switch (lastHistory.type) {
+            case "package": path = lastHistory.value.filename; break;
+            case "object": path = lastHistory.value.filename; break;
+            case "struct":
+                while (lastHistory.parent) lastHistory = lastHistory.parent;
+                path = lastHistory.filename;
+                break;
+            default: throw new Error(`Invalid history type: ${lastHistory.type}`);
+        }
+
+
+        await IPCClient.send("user-interaction", {
+            type: "save-package",
+            payload: {
+                path
+            }
+        });
+
+        debugger;
+    }
+
+    const menuItems = [
+        { label: "Load directory", enabled: false, callback: onLoadDirectory, icon: FolderIcon },
+        { label: "Save changes", enabled: history.length > 0, callback: onSaveChanges, icon: SaveIcon }
+    ];
 
     return (
         <Box sx={{ /*flexGrow: 1*/ }}>
@@ -71,9 +113,38 @@ function Header({ filter: [filter, setFilter] }) {
                         color="inherit"
                         aria-label="open drawer"
                         sx={{ mr: 2 }}
+                        onClick={handleClickListItem}
                     >
                         <MenuIcon />
                     </IconButton>
+                    <Menu
+                        open={open}
+                        anchorEl={anchorEl}
+                        MenuListProps={{ role: "listbox" }}
+                        onClose={handleClose}
+                    >
+                        {
+                            menuItems.map(({ label, enabled, callback, icon: Icon }, index) => {
+                                return (
+                                    <MenuItem key={index} disabled={!enabled} onClick={() => {
+                                        setAnchorEl(null);
+                                        callback();
+                                    }}>
+                                        {
+                                            Icon
+                                                ? (
+                                                    <ListItemIcon>
+                                                        <Icon fontSize="small"></Icon>
+                                                    </ListItemIcon>
+                                                )
+                                                : null
+                                        }
+                                        {label}
+                                    </MenuItem>
+                                );
+                            })
+                        }
+                    </Menu>
                     <Typography
                         variant="h6"
                         noWrap

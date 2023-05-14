@@ -16,7 +16,7 @@ function App() {
 
     return (
         <ThemeProvider theme={darkTheme}>
-            <Header filter={stateFilter} />
+            <Header filter={stateFilter} history={stateHistory} />
             <History history={stateHistory} />
             <Divider />
             <Editor history={stateHistory} filter={stateFilter} />
