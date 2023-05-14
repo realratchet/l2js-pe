@@ -26,7 +26,51 @@ class UPackage extends _UPackage {
      * 
      * @param {ByteWriter} writer 
      */
+    async padHeader(writer) {
+        let headerSize = 0;
+
+        const header = this.header;
+
+        if (this.version.startsWith("1")) headerSize += 4;
+        else {
+            debugger;
+            throw new Error("Dumping this version is not yet supported!");
+        }
+
+        headerSize += 4; //header.version
+        headerSize += 4; //header.packageFlags
+        headerSize += 4; //header.nameCount
+        headerSize += 4; //header.nameOffset
+        headerSize += 4; //header.exportCount
+        headerSize += 4; //header.exportOffset
+        headerSize += 4; //header.importCount
+        headerSize += 4; //header.importOffset
+
+        if (header.getArchiveFileVersion() < 68) {
+            headerSize += 4; // header.heritageCount
+            headerSize += 4; // header.heritageOffset
+        } else {
+            headerSize += 16; // header.guid;
+            headerSize += 4;  // header.generations.length
+
+            for (const gen of header.generations) {
+                headerSize += 4; // gen.exportCount
+                headerSize += 4; // gen.nameCount
+            }
+        }
+
+        await writer.writeBytes(new ArrayBuffer(headerSize));
+    }
+
+    /**
+     * 
+     * @param {ByteWriter} writer 
+     */
     async dumpHeader(writer) {
+        writer.flush();
+
+        debugger;
+
         const header = this.header;
 
         if (this.version.startsWith("1")) await writer.writeUint32(this.signature);
@@ -45,6 +89,7 @@ class UPackage extends _UPackage {
         await writer.writeInt32(header.importOffset);           // this will need to be precalced
 
         if (header.getArchiveFileVersion() < 68) {
+            throw new Error("Not yet implemented");
             await writer.writeUint32(header.heritageCount);
             await writer.writeUint32(header.heritageOffset);
         } else {
@@ -74,10 +119,19 @@ class UPackage extends _UPackage {
     /**
      * 
      * @param {ByteWriter} writer 
+     * @param {number} exportTableOffset
+     * @param {number[]} exportSizes
      */
-    async dumpExportTable(writer) {
-        for (const exp of this.exports) {
+    async dumpExportTable(writer, exportTableOffset, exportSizes) {
+
+        let expOffset = exportTableOffset;
+
+        for (let i = 0, len = this.exports.length; i < len; i++) {
+            const exp = this.exports[i];
+
             if (exp.isFake) continue;
+
+            const exportSize = exportSizes[i];
 
             await writer.writeCompat32(exp.idClass);
             await writer.writeCompat32(exp.idSuper);
@@ -85,10 +139,12 @@ class UPackage extends _UPackage {
             await writer.writeCompat32(exp.idObjectName);
 
             await writer.writeUint32(exp.flags);
-            await writer.writeCompat32(exp.size);
+            await writer.writeCompat32(exportSize);
 
             if (exp.size > 0)
-                await writer.writeCompat32(exp.offset);
+                await writer.writeCompat32(expOffset);
+
+            expOffset = expOffset + exportSize;
         }
     }
 
@@ -115,6 +171,7 @@ class UPackage extends _UPackage {
         writer.flush();
 
         const readable = this.asReadable();
+        const exportSizes = [];
 
         // this.fetchObject(1).loadSelf();
         // this.fetchObject(3131);
@@ -131,6 +188,7 @@ class UPackage extends _UPackage {
                 }
 
                 await writer.writeBytes(serialized);
+                exportSizes.push(serialized.byteLength);
             } else {
 
                 readable.seek(exp.offset, "set");
@@ -142,12 +200,15 @@ class UPackage extends _UPackage {
                 }
 
                 await writer.writeBytes(bytes.buffer);
+                exportSizes.push(bytes.buffer.byteLength);
             }
 
             if (writer.size() !== (exp.offset + exp.size)) {
                 debugger;
             }
         }
+
+        return exportSizes;
     }
 
     /**
@@ -231,20 +292,34 @@ class UPackage extends _UPackage {
         try {
             const writer = new ByteWriter(writeStream);
 
-            await this.dumpHeader(writer);
+            await this.padHeader(writer); // we fake the header first until a seek/overwrite is added
+
             console.assert(this.header.nameOffset === writer.size());
+
+            const nameTableOffset = writeStream.size();
+
             await this.dumpNameTable(writer);
-            await this.dumpExports(writer);
+
+            const exportOffset = writeStream.size();
+            const exportSizes = await this.dumpExports(writer);
             console.assert(this.header.importOffset === writer.size());
+
+            const importTableOffset = writeStream.size();
             await this.dumpImportTable(writer);
             console.assert(this.header.exportOffset === writer.size());
-            await this.dumpExportTable(writer);
+
+            const exportTableOffset = writeStream.size();
+            await this.dumpExportTable(writer, exportTableOffset, exportSizes);
+
+            await this.dumpHeader(writer);
 
             console.assert(5697273 === writer.size());
 
+            debugger;
+
             await this.encrypt(writer);
 
-            writeStream.flush()
+            writeStream.flush();
 
             return writeStream;
         } finally {

@@ -106,8 +106,6 @@ class IPCServer {
     async _onSavePackage({ index, name, type, path, ext }) {
         if (!assetLoader) throw new Error(`No asset loader!`);
 
-        debugger;
-
         let pkg;
 
         if (path) pkg = assetLoader.getPackage(path);
