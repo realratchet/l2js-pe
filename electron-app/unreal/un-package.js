@@ -66,41 +66,58 @@ class UPackage extends _UPackage {
      * 
      * @param {ByteWriter} writer 
      */
-    async dumpHeader(writer) {
+    async dumpHeader(writer, [nameTableOffset, nameCount], [exportTableOffset, exportCount], [importTableOffset, importCount]) {
         writer.flush();
 
-        debugger;
+        const gen = this.header.generations[0];
+
+        console.assert(gen.nameCount === nameCount);
+        console.assert(gen.exportCount === exportCount);
+
+        console.assert(this.header.nameOffset === nameTableOffset);
+        console.assert(this.header.nameCount === nameCount);
+
+        console.assert(this.header.exportOffset === exportTableOffset);
+        console.assert(this.header.exportCount === exportCount);
+
+        console.assert(this.header.importOffset === importTableOffset);
+        console.assert(this.header.importCount === importCount);
+
 
         const header = this.header;
 
-        if (this.version.startsWith("1")) await writer.writeUint32(this.signature);
+        writer.stream.seek(0);
+
+        if (this.version.startsWith("1")) await writer.setUint32(this.signature);
         else {
             debugger;
             throw new Error("Dumping this version is not yet supported!");
         }
 
-        await writer.writeUint32(header.version);
-        await writer.writeInt32(header.packageFlags);
-        await writer.writeInt32(header.nameCount);              // this will need to be precalced
-        await writer.writeInt32(header.nameOffset);             // this will need to be precalced
-        await writer.writeInt32(header.exportCount);            // this will need to be precalced
-        await writer.writeInt32(header.exportOffset);           // this will need to be precalced
-        await writer.writeInt32(header.importCount);            // this will need to be precalced
-        await writer.writeInt32(header.importOffset);           // this will need to be precalced
+        await writer.setUint32(header.version);
+        await writer.setInt32(header.packageFlags);
+        await writer.setInt32(nameCount);              // this will need to be precalced
+        await writer.setInt32(nameTableOffset);             // this will need to be precalced
+        await writer.setInt32(exportCount);            // this will need to be precalced
+        await writer.setInt32(exportTableOffset);           // this will need to be precalced
+        await writer.setInt32(importCount);            // this will need to be precalced
+        await writer.setInt32(importTableOffset);           // this will need to be precalced
 
         if (header.getArchiveFileVersion() < 68) {
             throw new Error("Not yet implemented");
-            await writer.writeUint32(header.heritageCount);
-            await writer.writeUint32(header.heritageOffset);
+            await writer.setUint32(header.heritageCount);
+            await writer.setUint32(header.heritageOffset);
         } else {
-            await writer.writeBytes(header.guid.bytes.buffer);
-            await writer.writeInt32(header.generations.length);
+            await writer.setBytes(header.guid.bytes.buffer);
+            await writer.setInt32(header.generations.length);
 
             for (const gen of header.generations) {
-                await writer.writeUint32(gen.exportCount);
-                await writer.writeUint32(gen.nameCount);
+                await writer.setUint32(gen.exportCount);
+                await writer.setUint32(gen.nameCount);
             }
         }
+
+        writer.stream.seek(undefined);
     }
 
     /**
@@ -108,12 +125,18 @@ class UPackage extends _UPackage {
      * @param {ByteWriter} writer 
      */
     async dumpNameTable(writer) {
+        let nameCount = 0;
+
         for (const name of this.nameTable) {
             if (name.isFake) continue;
 
             await writer.writeChar(name.name);
             await writer.writeUint32(name.flags);
+
+            nameCount++;
         }
+
+        return nameCount;
     }
 
     /**
@@ -126,12 +149,14 @@ class UPackage extends _UPackage {
 
         let expOffset = exportTableOffset;
 
-        for (let i = 0, len = this.exports.length; i < len; i++) {
+        for (let i = 0, len = this.exports.length, j = 0; i < len; i++) {
             const exp = this.exports[i];
 
             if (exp.isFake) continue;
 
             const exportSize = exportSizes[i];
+
+            console.assert(exp.size === exportSize);
 
             await writer.writeCompat32(exp.idClass);
             await writer.writeCompat32(exp.idSuper);
@@ -141,10 +166,14 @@ class UPackage extends _UPackage {
             await writer.writeUint32(exp.flags);
             await writer.writeCompat32(exportSize);
 
-            if (exp.size > 0)
+            if (exp.size > 0) {
+                console.assert(expOffset === exp.offset);
                 await writer.writeCompat32(expOffset);
+            }
 
             expOffset = expOffset + exportSize;
+
+            j++;
         }
     }
 
@@ -153,6 +182,8 @@ class UPackage extends _UPackage {
      * @param {ByteWriter} writer 
      */
     async dumpImportTable(writer) {
+        let importCount = 0;
+
         for (const imp of this.imports) {
             if (imp.isFake) continue;
 
@@ -160,7 +191,11 @@ class UPackage extends _UPackage {
             await writer.writeCompat32(imp.idClassName);
             await writer.writeInt32(imp.idPackage);
             await writer.writeCompat32(imp.idObjectName);
+
+            importCount++;
         }
+
+        return importCount;
     }
 
     /**
@@ -216,9 +251,6 @@ class UPackage extends _UPackage {
      * @param {ByteWriter} writer 
      */
     async encrypt(writer) {
-        // 5697301
-        debugger;
-
         if (this.version.startsWith("1")) {
             crypto.encoders.encryptModulo(writer.flush(), this.moduloCryptKey);
 
@@ -278,8 +310,6 @@ class UPackage extends _UPackage {
             }
 
             console.log(`${offsetHeader}--------------------------------------------------------`);
-
-            debugger;
         } else {
             debugger;
             throw new Error("Encrypting this version is not yet supported!");
@@ -295,27 +325,34 @@ class UPackage extends _UPackage {
             await this.padHeader(writer); // we fake the header first until a seek/overwrite is added
 
             console.assert(this.header.nameOffset === writer.size());
+            console.assert(this.header.generations !== 1);
+
 
             const nameTableOffset = writeStream.size();
-
-            await this.dumpNameTable(writer);
+            const nameCount = await this.dumpNameTable(writer);
 
             const exportOffset = writeStream.size();
             const exportSizes = await this.dumpExports(writer);
+            const exportCount = exportSizes.length;
             console.assert(this.header.importOffset === writer.size());
 
             const importTableOffset = writeStream.size();
-            await this.dumpImportTable(writer);
+            const importCount = await this.dumpImportTable(writer);
             console.assert(this.header.exportOffset === writer.size());
 
             const exportTableOffset = writeStream.size();
-            await this.dumpExportTable(writer, exportTableOffset, exportSizes);
+            await this.dumpExportTable(writer, exportOffset, exportSizes);
+            await this.dumpHeader(
+                writer,
+                [nameTableOffset, nameCount],
+                [exportTableOffset, exportCount],
+                [importTableOffset, importCount]
+            );
 
-            await this.dumpHeader(writer);
 
             console.assert(5697273 === writer.size());
 
-            debugger;
+            const pkgString = await this.readPackageString();
 
             await this.encrypt(writer);
 
@@ -329,7 +366,7 @@ class UPackage extends _UPackage {
     }
 
     async savePackage() {
-        const writeStream = await this.toBuffer();
+        const writeStream = (await this.toBuffer()).buffer;
         const newPath = this.path + ".new";
 
         await writeFile(newPath, writeStream);
@@ -363,13 +400,33 @@ class BufferStream extends Writable {
          * @type {Buffer[]}
          */
         this.chunksStart = [];
+
+        this.position = undefined;
     }
 
     write(chunk, callback) {
+        this.position = undefined;
+
         this.chunks.push(chunk);
 
         callback();
     }
+
+    set(chunk, callback) {
+        this.flush();
+
+        const chSize = chunk.byteLength || chunk.length || 0;
+
+        if (this.position === undefined) throw new Error("Cannot set at the end");
+
+        this.buffer.set(chunk, this.position);
+        this.position = this.position + chSize;
+
+        callback();
+    }
+
+    seek(position) { this.position = position; }
+    tell() { return this.position === undefined ? this.size() : this.position; }
 
     flush() {
         if (this.chunksStart.length === 0 && this.chunks.length === 0)
@@ -409,6 +466,7 @@ class ByteWriter {
         this.int32 = new DataView(new ArrayBuffer(4));
         this.int16 = new DataView(new ArrayBuffer(2));
         this.int8 = new DataView(new ArrayBuffer(1));
+        this.endianess = "little";
     }
 
     size() { return this.stream.size(); }
@@ -433,93 +491,124 @@ class ByteWriter {
 
     /**
      * 
-     * @param {number} value 
+     * @param {ArrayBuffer|string} value 
      */
-    async writeUint64(value) {
-        this.int64.setUint64(0, value, true);
-        await this.writeBytes(this.int64.buffer);
+    setBytes(value) {
+        return new Promise((resolve, reject) => {
+            this.stream.set(Buffer.from(value.slice()), error => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+
+                resolve();
+            });
+        });
     }
 
     /**
      * 
      * @param {number} value 
      */
-    async writeInt64(value) {
-        this.int64.setInt64(0, value, true);
-        await this.writeBytes(this.int64.buffer);
+    async writeUint64(value) { await this.writeBytes(this.getUint64(value)); }
+    async setUint64(value) { await this.setBytes(this.getUint64(value)); }
+    getUint64(value, copy = false) {
+        this.int64.setUint64(0, value, this.endianess === "little");
+        return copy ? this.int64.buffer.slice() : this.int64.buffer;
     }
 
     /**
      * 
      * @param {number} value 
      */
-    async writeUint32(value) {
-        this.int32.setUint32(0, value, true);
-        await this.writeBytes(this.int32.buffer);
+    async writeInt64(value) { await this.writeBytes(this.getInt64(value)); }
+    async setInt64(value) { await this.setBytes(this.getInt64(value)); }
+    getInt64(value, copy = false) {
+        this.int64.setInt64(0, value, this.endianess === "little");
+        return copy ? this.int64.buffer.slice() : this.int64.buffer;
     }
 
     /**
      * 
      * @param {number} value 
      */
-    async writeInt32(value) {
-        this.int32.setInt32(0, value, true);
-        await this.writeBytes(this.int32.buffer);
+    async writeUint32(value) { await this.writeBytes(this.getUint32(value)); }
+    async setUint32(value) { await this.setBytes(this.getUint32(value)); }
+    getUint32(value, copy = false) {
+        this.int32.setUint32(0, value, this.endianess === "little");
+        return copy ? this.int32.buffer.slice() : this.int32.buffer;
     }
 
     /**
      * 
      * @param {number} value 
      */
-    async writeUint16(value) {
-        this.int16.setUint16(0, value, true);
-        await this.writeBytes(this.int16.buffer);
+    async writeInt32(value) { await this.writeBytes(this.getInt32(value)); }
+    async setInt32(value) { await this.setBytes(this.getInt32(value)); }
+    getInt32(value, copy = false) {
+        this.int32.setInt32(0, value, this.endianess === "little");
+        return copy ? this.int32.buffer.slice() : this.int32.buffer;
     }
 
     /**
      * 
      * @param {number} value 
      */
-    async writeInt16(value) {
-        this.int16.setInt16(0, value, true);
-        await this.writeBytes(this.int16.buffer);
-    }
-
-    /**
-     * class BufferStream extends Writable {
-            write(chunk) {
-                debugger;
-            }
-        }
-     * @param {number} value 
-     */
-    async writeUint8(value) {
-        this.int8.setUint8(0, value, true);
-        await this.writeBytes(this.int8.buffer);
+    async writeUint16(value) { await this.writeBytes(this.getnt16(value)); }
+    async setUint16(value) { await this.setBytes(this.getnt16(value)); }
+    getUint16(value, copy = false) {
+        this.int16.setUint16(0, value, this.endianess === "little");
+        return copy ? this.int16.buffer.slice() : this.int16.buffer;
     }
 
     /**
      * 
      * @param {number} value 
      */
-    async writeInt8(value) {
-        this.int8.setInt8(0, value, true);
-        await this.writeBytes(this.int8.buffer);
+    async writeInt16(value) { await this.writeBytes(this.getInt16(value)); }
+    async setInt16(value) { await this.setBytes(this.getInt16(value)); }
+    getInt16(value, copy = false) {
+        this.int16.setInt16(0, value, this.endianess === "little");
+        return copy ? this.int16.buffer.slice() : this.int16.buffer;
+    }
+
+    /**
+     * 
+     * @param {number} value 
+     */
+    async writeUint8(value) { await this.writeBytes(this.getUint8(value)); }
+    async setUint8(value) { await this.setBytes(this.getUint8(value)); }
+    getUint8(value, copy = false) {
+        this.int8.setUint8(0, value, this.endianess === "little");
+        return copy ? this.int8.buffer.slice() : this.int8.buffer;
+    }
+
+    /**
+     * 
+     * @param {number} value 
+     */
+    async writeInt8(value) { await this.writeBytes(this.getInt8(value)); }
+    async setInt8(value) { await this.setBytes(this.getInt8(value)); }
+    geteInt8(value, copy = false) {
+        this.int8.setInt8(0, value, this.endianess === "little");
+        return copy ? this.int8.buffer.slice() : this.int8.buffer;
     }
 
     /**
      * 
      * @param {string} value 
      */
-    async writeChar(value) {
-        await this.writeBytes(getStrBytes(value));
-    }
+    async writeChar(value) { await this.writeBytes(this.getChar(value)); }
+    async setChar(value) { await this.setBytes(this.getChar(value)); }
+    getChar(value) { return getStrBytes(value); }
 
     /**
      * 
      * @param {number} value 
      */
-    async writeCompat32(value) { await this.writeBytes(getCompatBytes(value)); }
+    async writeCompat32(value) { await this.writeBytes(this.getCompat32(value)); }
+    async setCompat32(value) { await this.setBytes(this.getCompat32(value)); }
+    getCompat32(value) { return getCompatBytes(value); }
 }
 
 /**

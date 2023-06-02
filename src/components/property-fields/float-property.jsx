@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { TextField } from "@mui/material";
+import IPCClient from "../../../electron-app/events/ipc-client";
 
-export function FloatProperty({ value }) {
+function FloatProperty({ value, object, propertyName, index }) {
     const [curValue, setCurValue] = useState(value);
     const [curError, setError] = useState(false);
     const [curDisplayValue, setDisplayCurValue] = useState(value);
@@ -28,6 +29,16 @@ export function FloatProperty({ value }) {
     function onBlur() {
         setDisplayCurValue(curValue);
         setError(false);
+
+        IPCClient.send("user-interaction", {
+            type: "update-property",
+            payload: {
+                object,
+                propertyName,
+                propertyIndex: index,
+                propertyValue: curValue
+            }
+        });
     }
 
     return (
@@ -43,3 +54,6 @@ export function FloatProperty({ value }) {
         />
     );
 }
+
+export default FloatProperty;
+export { FloatProperty };

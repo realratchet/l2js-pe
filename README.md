@@ -93,5 +93,7 @@ The implementation is not complete:
         - [x] Struct
 - [ ] Persistent changes to properties
 - [ ] Ability to save changes to disk
+    - [x] Version 1xx
+    - [ ] Version 4xx
 - [ ] Improve property editor UI to be more uniform (`low priority`)
 - [ ] Installation/startup guide (`low priority`)

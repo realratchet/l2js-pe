@@ -50,7 +50,8 @@ function IntProperty({ value, label, min, max, object, propertyName, index, isSe
             payload: {
                 object,
                 propertyName,
-                propertyIndex: index
+                propertyIndex: index,
+                propertyValue: curValue
             }
         });
     }

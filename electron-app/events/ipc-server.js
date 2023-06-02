@@ -88,19 +88,59 @@ class IPCServer {
         return object.toJSON();
     }
 
-    async _onUpdateProperty({ object: { filename, index }, propertyName, propertyIndex }) {
-        if (!assetLoader) throw new Error(`No asset loader!`);
+    async _onUpdateProperty({ object, propertyName, propertyIndex, propertyValue }) {
+        const propChain = [];
 
-        console.log(filename);
+        let parent = object;
+
+        let filename;
+
+        while (parent) {
+            switch (parent.type) {
+                case "struct":
+                    break;
+                case "object":
+                    filename = object.filename;
+                    propChain.p
+                    parent = null;
+                    break;
+                default: throw new Error(`Invalid type: ${parent.type}`);
+            }
+        }
+
+
+        console.log(arguments[0]);
+
+        if (!assetLoader) throw new Error(`No asset loader!`);
 
         const pkg = assetLoader.getPackage(filename);
 
         if (!pkg.isDecoded())
             throw new Error("Cannot set property for package that was never decoded? How did this happen?");
 
-        console.log(pkg);
+        if (!isFinite(index) || index < 0 || index >= pkg.exports.length) throw new Error(`Invalid export index: ${index}`);
 
-        debugger;
+        const exp = pkg.exports[index];
+
+        if (exp.isFake)
+            throw new Error("Cannot modify fake exports!");
+
+        if (!exp.object)
+            throw new Error("Object isn't loaded yet!");
+
+        const object = exp.object;
+
+        if (!object.propertyDict.has(propertyName))
+            throw new Error(`'${propertyName}' is not a valid property!`);
+
+        const prop = object.propertyDict.get(propertyName);
+
+        if (propertyIndex < 0 || propertyIndex >= prop.propertyValue.length)
+            throw new Error(`Index '${propertyIndex}' is out of bounds.`);
+
+        const propVal = prop.propertyValue[propertyIndex];
+
+        console.log(propVal, "->", propertyValue);
     }
 
     async _onSavePackage({ index, name, type, path, ext }) {
@@ -163,5 +203,5 @@ async function getPackageList(dirname) {
         }
     }
 
-    return packageList;
+    return packageList.filter(x => x.includes("17_25"));
 }
