@@ -3,6 +3,7 @@ const { ipcMain } = require("electron");
 const ValidChannels = require("./channels");
 const AssetLoader = require("../asset-loader");
 const { promises: { readdir, stat } } = require("fs");
+const { BufferValue } = require("../import-core")();
 // const { SUPPORTED_EXTENSIONS } = require("../import-core")();
 const SUPPORTED_EXTENSIONS = ["UNR"];
 
@@ -88,28 +89,27 @@ class IPCServer {
         return object.toJSON();
     }
 
-    async _onUpdateProperty({ object, propertyName, propertyIndex, propertyValue }) {
-        const propChain = [];
+    async _onUpdateProperty({ object: ident, propertyName, propertyIndex, propertyValue }) {
+        const propChain = [[propertyName, propertyIndex]];
 
-        let parent = object;
+        let parent = ident;
 
-        let filename;
+        let filename, index;
 
         while (parent) {
             switch (parent.type) {
                 case "struct":
+                    propChain.unshift([parent.propertyName, parent.propertyIndex]);
+                    parent = parent.parent;
                     break;
                 case "object":
-                    filename = object.filename;
-                    propChain.p
+                    filename = parent.filename;
+                    index = parent.index;
                     parent = null;
                     break;
                 default: throw new Error(`Invalid type: ${parent.type}`);
             }
         }
-
-
-        console.log(arguments[0]);
 
         if (!assetLoader) throw new Error(`No asset loader!`);
 
@@ -128,19 +128,35 @@ class IPCServer {
         if (!exp.object)
             throw new Error("Object isn't loaded yet!");
 
-        const object = exp.object;
+        let expObject = exp.object;
 
-        if (!object.propertyDict.has(propertyName))
-            throw new Error(`'${propertyName}' is not a valid property!`);
 
-        const prop = object.propertyDict.get(propertyName);
+        let prop, propVal;
 
-        if (propertyIndex < 0 || propertyIndex >= prop.propertyValue.length)
-            throw new Error(`Index '${propertyIndex}' is out of bounds.`);
+        for (let i = 0, len = propChain.length; i < len; i++) {
+            const [propertyName, propertyIndex] = propChain[i];
 
-        const propVal = prop.propertyValue[propertyIndex];
+            if (!expObject.propertyDict.has(propertyName))
+                throw new Error(`'${propertyName}' is not a valid property!`);
 
-        console.log(propVal, "->", propertyValue);
+            prop = expObject.propertyDict.get(propertyName);
+
+            if (propertyIndex < 0 || propertyIndex >= prop.propertyValue.length)
+                throw new Error(`Index '${propertyIndex}' is out of bounds.`);
+
+            expObject = prop.propertyValue[propertyIndex];
+        }
+
+        this._setPropertyValue(expObject, propertyValue);
+    }
+
+    _setPropertyValue(property, value) {
+        if (property instanceof BufferValue) {
+            const before = property.toString();
+            property.value = value;
+
+            console.log(`${before} -> ${property.toString()}`);
+        } else throw new Error(`Not implemented`);
     }
 
     async _onSavePackage({ index, name, type, path, ext }) {

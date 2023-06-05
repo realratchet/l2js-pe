@@ -13,6 +13,8 @@ function IntProperty({ value, label, min, max, object, propertyName, index, isSe
     const [curRadix, setRadix] = useState(radix);
     const [curDisplayValue, setDisplayCurValue] = useState(toDisplay(value, radix));
 
+    // debugger;
+
     function onInput({ target: { value } }) {
         setDisplayCurValue(value);
 

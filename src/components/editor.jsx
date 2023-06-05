@@ -119,7 +119,7 @@ function Editor({ history, filter }) {
 export default Editor;
 export { Editor };
 
-function getStructEditor({ history, filter }, { parent, propertyName, value: { type, value } }) {
+function getStructEditor({ history, filter }, { parent, propertyName, propertyIndex, value: { type, value } }) {
     const [activeHistory,] = history;
     const groups = useMemo(() => {
         const props = Object.entries(value).reduce((acc, [propName, propVal]) => {
@@ -145,7 +145,8 @@ function getStructEditor({ history, filter }, { parent, propertyName, value: { t
     const object = {
         type: "struct",
         parent,
-        propertyName
+        propertyName,
+        propertyIndex
     };
 
     function onCreateItemElement(collectionKey, index, { name: propertyName, value: propertyValue }) {
