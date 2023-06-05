@@ -95,7 +95,7 @@ function Header({ filter: [filter, setFilter], history: [history,] }) {
             }
         });
 
-        debugger;
+        // debugger;
     }
 
     const menuItems = [

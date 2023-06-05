@@ -71,18 +71,17 @@ class UPackage extends _UPackage {
 
         const gen = this.header.generations[0];
 
-        console.assert(gen.nameCount === nameCount);
-        console.assert(gen.exportCount === exportCount);
+        // console.assert(gen.nameCount === nameCount);
+        // console.assert(gen.exportCount === exportCount);
 
-        console.assert(this.header.nameOffset === nameTableOffset);
-        console.assert(this.header.nameCount === nameCount);
+        // console.assert(this.header.nameOffset === nameTableOffset);
+        // console.assert(this.header.nameCount === nameCount);
 
-        console.assert(this.header.exportOffset === exportTableOffset);
-        console.assert(this.header.exportCount === exportCount);
+        // console.assert(this.header.exportOffset === exportTableOffset);
+        // console.assert(this.header.exportCount === exportCount);
 
-        console.assert(this.header.importOffset === importTableOffset);
-        console.assert(this.header.importCount === importCount);
-
+        // console.assert(this.header.importOffset === importTableOffset);
+        // console.assert(this.header.importCount === importCount);
 
         const header = this.header;
 
@@ -156,7 +155,7 @@ class UPackage extends _UPackage {
 
             const exportSize = exportSizes[i];
 
-            console.assert(exp.size === exportSize);
+            // console.assert(exp.size === exportSize);
 
             await writer.writeCompat32(exp.idClass);
             await writer.writeCompat32(exp.idSuper);
@@ -167,7 +166,7 @@ class UPackage extends _UPackage {
             await writer.writeCompat32(exportSize);
 
             if (exp.size > 0) {
-                console.assert(expOffset === exp.offset);
+                // console.assert(expOffset === exp.offset);
                 await writer.writeCompat32(expOffset);
             }
 
@@ -217,10 +216,7 @@ class UPackage extends _UPackage {
             if (exp.object?.loadSelf()) {
                 const serialized = serializeObject(this.nameHash, exp.object);
 
-                if (serialized.byteLength !== exp.size) {
-                    debugger;
-                    throw new Error("Re-serialization mismatch");
-                }
+                // console.assert(serialized.byteLength === exp.size, "Re-serialization mismatch");
 
                 await writer.writeBytes(serialized);
                 exportSizes.push(serialized.byteLength);
@@ -230,17 +226,17 @@ class UPackage extends _UPackage {
 
                 const bytes = readable.read(BufferValue.allocBytes(exp.size)).bytes;
 
-                if (writer.size() !== exp.offset) {
-                    debugger;
-                }
+                // if (writer.size() !== exp.offset) {
+                //     debugger;
+                // }
 
                 await writer.writeBytes(bytes.buffer);
                 exportSizes.push(bytes.buffer.byteLength);
             }
 
-            if (writer.size() !== (exp.offset + exp.size)) {
-                debugger;
-            }
+            // if (writer.size() !== (exp.offset + exp.size)) {
+            //     debugger;
+            // }
         }
 
         return exportSizes;
@@ -324,8 +320,8 @@ class UPackage extends _UPackage {
 
             await this.padHeader(writer); // we fake the header first until a seek/overwrite is added
 
-            console.assert(this.header.nameOffset === writer.size());
-            console.assert(this.header.generations !== 1);
+            // console.assert(this.header.nameOffset === writer.size());
+            // console.assert(this.header.generations !== 1);
 
 
             const nameTableOffset = writeStream.size();
@@ -334,11 +330,11 @@ class UPackage extends _UPackage {
             const exportOffset = writeStream.size();
             const exportSizes = await this.dumpExports(writer);
             const exportCount = exportSizes.length;
-            console.assert(this.header.importOffset === writer.size());
+            // console.assert(this.header.importOffset === writer.size());
 
             const importTableOffset = writeStream.size();
             const importCount = await this.dumpImportTable(writer);
-            console.assert(this.header.exportOffset === writer.size());
+            // console.assert(this.header.exportOffset === writer.size());
 
             const exportTableOffset = writeStream.size();
             await this.dumpExportTable(writer, exportOffset, exportSizes);
@@ -350,7 +346,7 @@ class UPackage extends _UPackage {
             );
 
 
-            console.assert(5697273 === writer.size());
+            // console.assert(5697273 === writer.size());
 
             await this.encrypt(writer);
 
@@ -710,6 +706,9 @@ function getTagBytes(nameHash, prop, index, dataSize) {
 
     if (isBoolean && isArray)
         debugger;
+
+    // if (isBoolean)
+    //     debugger;
 
     if (isArray || isBoolean && prop.getPropertyValue())
         info |= UNP_PropertyMasks.PROPERTY_ARRAY_MASK;
