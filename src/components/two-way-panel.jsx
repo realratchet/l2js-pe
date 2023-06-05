@@ -75,11 +75,13 @@ function TwoWayPanel({ collection, filter: [filter, setFilter], onCreateElement,
                     <TabPanel value={0} index={0}>
                         <List>
                             {
-                                filteredItems.slice(0, maxSearchElements).map(([collectionKey, item, trueIndex], index) => (
-                                    <ListItem key={index}>
-                                        {onCreateElement(collectionKey, trueIndex, item)}
-                                    </ListItem>
-                                ))
+                                filteredItems.slice(0, maxSearchElements).map(([collectionKey, item, trueIndex], index) => {
+                                    return (
+                                        <ListItem key={index}>
+                                            {onCreateElement(collectionKey, trueIndex, item)}
+                                        </ListItem>
+                                    );
+                                })
                             }
                             {
                                 filteredItems.length > maxSearchElements

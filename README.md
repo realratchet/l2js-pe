@@ -92,6 +92,24 @@ The implementation is not complete:
         - [ ] Class
         - [x] Struct
 - [ ] Persistent changes to properties
+    - [x] Byte
+    - [ ] Enumeration
+    - [x] Boolean
+    - [ ] ASCII string
+    - [ ] UTF-16 string
+    - [x] Integer
+    - [x] Float
+    - [x] Struct
+    - [x] Array types
+    - [ ] List types
+        - [x] Byte
+        - [ ] Enumeration
+        - [x] Boolean
+        - [ ] ASCII string
+        - [ ] UTF-16 string
+        - [x] Integer
+        - [x] Float
+        - [x] Struct
 - [ ] Ability to save changes to disk
     - [x] Version 1xx
     - [ ] Version 4xx

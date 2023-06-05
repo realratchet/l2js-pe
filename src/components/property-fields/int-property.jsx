@@ -13,8 +13,6 @@ function IntProperty({ value, label, min, max, object, propertyName, index, isSe
     const [curRadix, setRadix] = useState(radix);
     const [curDisplayValue, setDisplayCurValue] = useState(toDisplay(value, radix));
 
-    // debugger;
-
     function onInput({ target: { value } }) {
         setDisplayCurValue(value);
 
@@ -43,11 +41,11 @@ function IntProperty({ value, label, min, max, object, propertyName, index, isSe
     }
 
 
-    function onBlur() {
+    async function onBlur() {
         setDisplayCurValue(toDisplay(curValue, curRadix));
         setError(false);
 
-        IPCClient.send("user-interaction", {
+        await IPCClient.send("user-interaction", {
             type: "update-property",
             payload: {
                 object,
@@ -56,6 +54,7 @@ function IntProperty({ value, label, min, max, object, propertyName, index, isSe
                 propertyValue: curValue
             }
         });
+
     }
 
     return (

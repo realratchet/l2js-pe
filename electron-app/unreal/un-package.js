@@ -352,8 +352,6 @@ class UPackage extends _UPackage {
 
             console.assert(5697273 === writer.size());
 
-            const pkgString = await this.readPackageString();
-
             await this.encrypt(writer);
 
             writeStream.flush();
@@ -830,7 +828,7 @@ function serializeObject(nameHash, object) {
             }
         }
     } else {
-        for (const prop of object.propertyDict.values()) {
+        for (const [name, prop] of object.propertyDict.entries()) {
             for (let i = 0; i < prop.arrayDimensions; i++) {
                 if (!prop.isSet[i] || prop.isDefault[i])
                     continue;

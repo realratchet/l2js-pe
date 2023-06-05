@@ -3,7 +3,7 @@ const { ipcMain } = require("electron");
 const ValidChannels = require("./channels");
 const AssetLoader = require("../asset-loader");
 const { promises: { readdir, stat } } = require("fs");
-const { BufferValue } = require("../import-core")();
+const { BufferValue, UnProperties } = require("../import-core")();
 // const { SUPPORTED_EXTENSIONS } = require("../import-core")();
 const SUPPORTED_EXTENSIONS = ["UNR"];
 
@@ -145,18 +145,24 @@ class IPCServer {
                 throw new Error(`Index '${propertyIndex}' is out of bounds.`);
 
             expObject = prop.propertyValue[propertyIndex];
+
+            prop.isSet[propertyIndex] = true;
+            prop.isDefault[propertyIndex] = false;
         }
 
         this._setPropertyValue(expObject, propertyValue);
     }
 
     _setPropertyValue(property, value) {
-        if (property instanceof BufferValue) {
+        if (property instanceof BufferValue || property instanceof UnProperties.BooleanValue) {
             const before = property.toString();
             property.value = value;
 
             console.log(`${before} -> ${property.toString()}`);
-        } else throw new Error(`Not implemented`);
+        } else {
+            console.log(property);
+            throw new Error(`Not implemented`);
+        }
     }
 
     async _onSavePackage({ index, name, type, path, ext }) {
