@@ -1,12 +1,12 @@
 const { promises: { readFile, stat, writeFile }, createReadStream, createWriteStream, write } = require("fs");
-const { BufferValue, UPackage: _UPackage, UNativePackage: _UNativePackage, UExport, UObject, UnProperties, UNP_PropertyTypes, UNP_PropertyMasks, UNP_DataTypeSizes, crypto, UnArrays } = require("../import-core")();
+const { BufferValue, APackage, ANativePackage, UExport, UObject, UnProperties, UNP_PropertyTypes, UNP_PropertyMasks, UNP_DataTypeSizes, crypto, UnArrays } = require("../import-core")();
 const path = require("path");
 const { createHash } = require("crypto");
 const { Writable } = require("stream");
 
 UObject.UNREAD_AS_NATIVE = true;
 
-class UPackage extends _UPackage {
+class UPackage extends APackage {
     async readArrayBuffer() { return (await readFile(this.path)).buffer; }
 
     toJSON() {
@@ -368,7 +368,7 @@ class UPackage extends _UPackage {
 
 }
 
-class UNativePackage extends _UNativePackage {
+class UNativePackage extends ANativePackage {
     isCore = false;
     isEngine = false;
     isNative = true;
